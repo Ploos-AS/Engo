@@ -22,6 +22,7 @@ type Config struct {
 	HTTPTimeout time.Duration
 	HTTPMaxBody int64
 	ScriptCapabilities map[string][]string
+	ScriptCapabilitiesRaw string
 	SASLUsername string
 	SASLPassword string
 	ReconnectMin time.Duration
@@ -43,6 +44,7 @@ func FromEnv() Config {
 		HTTPTimeout: durationEnv("ENGO_HTTP_TIMEOUT",10*time.Second),
 		HTTPMaxBody: int64Env("ENGO_HTTP_MAX_BODY",262144),
 		ScriptCapabilities: capabilityEnv("ENGO_SCRIPT_CAPABILITIES"),
+		ScriptCapabilitiesRaw: os.Getenv("ENGO_SCRIPT_CAPABILITIES"),
 		SASLUsername: os.Getenv("ENGO_SASL_USERNAME"),
 		SASLPassword: os.Getenv("ENGO_SASL_PASSWORD"),
 		ReconnectMin: durationEnv("ENGO_RECONNECT_MIN",2*time.Second),
@@ -51,6 +53,7 @@ func FromEnv() Config {
 }
 
 func (c Config) Validate() error {
+	if err:=validateCapabilities(c.ScriptCapabilitiesRaw);err!=nil{return err}
 	if c.ScriptMaxAllocs <= 0 { return fmt.Errorf("ENGO_SCRIPT_MAX_ALLOCS must be positive") }
 	if c.HTTPTimeout<=0 || c.HTTPMaxBody<=0 { return fmt.Errorf("invalid HTTP capability limits") }
 	if c.Server=="" { return nil }
@@ -87,4 +90,19 @@ func capabilityEnv(key string)map[string][]string{
 		}
 	}
 	return out
+}
+
+func validateCapabilities(raw string)error{
+	raw=strings.TrimSpace(raw);if raw==""{return nil}
+	for _,entry:=range strings.Split(raw,","){
+		entry=strings.TrimSpace(entry);parts:=strings.SplitN(entry,":",2)
+		if len(parts)!=2||strings.TrimSpace(parts[0])==""||strings.TrimSpace(parts[1])==""{return fmt.Errorf("invalid ENGO_SCRIPT_CAPABILITIES entry %q",entry)}
+		if !strings.HasSuffix(strings.TrimSpace(parts[0]),".tengo"){return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",parts[0])}
+		for _,capability:=range strings.Split(parts[1],"+"){
+			capability=strings.ToLower(strings.TrimSpace(capability))
+			if capability==""{return fmt.Errorf("empty capability in ENGO_SCRIPT_CAPABILITIES entry %q",entry)}
+			if capability!="http"{return fmt.Errorf("unknown script capability %q",capability)}
+		}
+	}
+	return nil
 }

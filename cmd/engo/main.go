@@ -32,12 +32,13 @@ func runIRC(ctx context.Context,cfg config.Config)error{
 	b:=bot.New(client)
 	var reloadScripts func()error
 	if cfg.ScriptsDir!=""{
-		mgr:=script.NewManagerWithState(cfg.ScriptsDir,b,cfg.ScriptMaxAllocs,cfg.StateDir)
+		mgr:=script.NewManagerWithCapabilities(cfg.ScriptsDir,b,cfg.ScriptMaxAllocs,cfg.StateDir,cfg.HTTPAllow,cfg.HTTPTimeout,cfg.HTTPMaxBody)
 		if err:=mgr.ReloadAll();err!=nil{return err}
 		reloadScripts=mgr.ReloadAll
 	}else{
 		rt:=script.NewLimited(cfg.Script,b,cfg.ScriptMaxAllocs)
 		rt.SetStore(script.NewStore(cfg.StateDir,scriptNamespace(cfg.Script)))
+		rt.SetHTTP(script.NewHTTPClient(cfg.HTTPAllow,cfg.HTTPTimeout,cfg.HTTPMaxBody))
 		if err:=rt.Load();err!=nil{return err}
 		reloadScripts=rt.Reload
 	}

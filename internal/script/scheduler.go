@@ -17,8 +17,9 @@ const maxActiveTimers = 32
 
 func NewScheduler()*Scheduler{return &Scheduler{timers:make(map[string]timerEntry)}}
 
-func (s *Scheduler) After(id string,d time.Duration,fn func()){
+func (s *Scheduler) After(id string,d time.Duration,fn func())error{
 	s.cancelLocked(id)
+	s.mu.Lock();full:=len(s.timers)>=maxActiveTimers;s.mu.Unlock();if full{return fmt.Errorf("timer limit reached")}
 	token:=&struct{}{}
 	var t *time.Timer
 	t=time.AfterFunc(d,func(){
@@ -29,11 +30,12 @@ func (s *Scheduler) After(id string,d time.Duration,fn func()){
 		s.mu.Unlock()
 		if current{fn()}
 	})
-	s.mu.Lock();s.timers[id]=timerEntry{stop:t.Stop,token:token};s.mu.Unlock()
+	s.mu.Lock();s.timers[id]=timerEntry{stop:t.Stop,token:token};s.mu.Unlock();return nil
 }
 
-func (s *Scheduler) Every(id string,d time.Duration,fn func()){
+func (s *Scheduler) Every(id string,d time.Duration,fn func())error{
 	s.cancelLocked(id)
+	s.mu.Lock();full:=len(s.timers)>=maxActiveTimers;s.mu.Unlock();if full{return fmt.Errorf("timer limit reached")}
 	ticker:=time.NewTicker(d)
 	done:=make(chan struct{})
 	var once sync.Once
@@ -45,6 +47,7 @@ func (s *Scheduler) Every(id string,d time.Duration,fn func()){
 		case<-done:return
 		}}
 	}()
+	return nil
 }
 
 func (s *Scheduler) cancelLocked(id string)bool{

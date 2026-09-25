@@ -125,7 +125,7 @@ func validateCapabilities(raw string)error{
 
 func validateIRCCapability(capability string)error{
 	switch strings.ToLower(strings.TrimSpace(capability)){
-	case "account-notify","extended-join","server-time":
+	case "account-notify","account-tag","extended-join","server-time":
 		return nil
 	case "sasl":
 		return fmt.Errorf("sasl is managed automatically from ENGO_SASL_USERNAME/ENGO_SASL_PASSWORD")

@@ -66,7 +66,7 @@ func runIRC(ctx context.Context, cfg config.Config) error {
 		case err := <-done:
 			return err
 		case <-reload:
-			if err := rt.Reload(); err != nil {
+			if err := reloadScripts(); err != nil {
 				fmt.Fprintf(os.Stderr, "engo: script reload rejected; previous version remains active: %v\n", err)
 			} else {
 				fmt.Fprintln(os.Stderr, "engo: script reloaded")

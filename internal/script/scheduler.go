@@ -35,7 +35,7 @@ func (s *Scheduler) After(id string,d time.Duration,fn func())error{
 
 func (s *Scheduler) Every(id string,d time.Duration,fn func())error{
 	s.cancelLocked(id)
-	s.mu.Lock();full:=len(s.timers)>=maxActiveTimers;s.mu.Unlock();if full{return fmt.Errorf("timer limit reached")}
+	s.mu.Lock();if len(s.timers)>=maxActiveTimers{s.mu.Unlock();return fmt.Errorf("timer limit reached")}
 	ticker:=time.NewTicker(d)
 	done:=make(chan struct{})
 	var once sync.Once

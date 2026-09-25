@@ -110,3 +110,14 @@ func TestHTTPRejectsHostWithNoAddresses(t *testing.T){
 	u,_:=url.Parse("https://allowed.example/")
 	if err:=h.validateURL(u);err==nil{t.Fatal("expected empty DNS result rejection")}
 }
+
+
+func TestHTTPClientAppliesSafeDefaults(t *testing.T) {
+	h := NewHTTPClient([]string{"example.com"}, 0, 0)
+	if h.client.Timeout != 10*time.Second {
+		t.Fatalf("default timeout = %v, want 10s", h.client.Timeout)
+	}
+	if h.maxBody != 256*1024 {
+		t.Fatalf("default max body = %d, want %d", h.maxBody, 256*1024)
+	}
+}

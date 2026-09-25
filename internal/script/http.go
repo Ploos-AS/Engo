@@ -31,7 +31,7 @@ func NewHTTPClient(hosts []string,timeout time.Duration,maxBody int64)*HTTPClien
 		dialer:=&net.Dialer{Timeout:timeout}
 		for _,ip:=range ips{
 			if blockedIP(ip){continue}
-			conn,err:=dialer.DialContext(ctx,network,net.JoinHostPort(ip.String(),strconv.Itoa(mustPort(port))))
+			conn,err:=dialer.DialContext(ctx,network,net.JoinHostPort(ip.String(),port))
 			if err==nil{return conn,nil};last=err
 		}
 		if last!=nil{return nil,last};return nil,fmt.Errorf("HTTP destination has no permitted addresses")

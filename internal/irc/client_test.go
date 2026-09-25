@@ -294,3 +294,20 @@ func TestRunRejectsUnexpectedSASLSuccess(t *testing.T){
  case <-time.After(time.Second):t.Fatal("Run() did not reject unexpected 903")
  }
 }
+
+
+func TestRunRejectsUnexpectedSASLFailureNumerics(t *testing.T){
+ for _,numeric:=range []string{"904","905","906","907"}{
+  t.Run(numeric,func(t *testing.T){
+   clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+   c:=&Client{conn:clientConn,cfg:Config{},registrationTimeout:time.Second}
+   errCh:=make(chan error,1);go func(){errCh<-c.Run()}()
+   if _,err:=fmt.Fprintf(serverConn,":server %s nick :unexpected SASL failure\\r\\n",numeric);err!=nil{t.Fatal(err)}
+   select{
+   case err:=<-errCh:
+    if err==nil||!strings.Contains(err.Error(),"unexpected SASL failure numeric "+numeric){t.Fatalf("Run() error=%v",err)}
+   case <-time.After(time.Second):t.Fatalf("Run() did not reject unexpected %s",numeric)
+   }
+  })
+ }
+}

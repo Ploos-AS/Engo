@@ -102,7 +102,7 @@ func (b *Bot) Handle(m irc.Message) error {
 	case "JOIN":
 		if len(m.Params)>=2 { account=m.Params[1]; accountVerified=account!=""&&account!="*"&&currentUserhost!=""; if !accountVerified{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}} }
 	case "NICK":
-		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,nickKey);b.accounts[ircNickKey(newNick,b.caseMapping)]=accountIdentity{account:account,userhost:currentUserhost}}
+		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""&&accountVerified&&currentUserhost!=""{delete(b.accounts,nickKey);b.accounts[ircNickKey(newNick,b.caseMapping)]=accountIdentity{account:account,userhost:currentUserhost}}else{delete(b.accounts,nickKey)}
 	case "QUIT":
 		delete(b.accounts,nickKey)
 	case "KICK":

@@ -43,6 +43,15 @@ func (r *Runtime) Reload() error {
 
 func RunFile(path string) error { return New(path, bot.New(discardSender{})).Load() }
 
+func (r *Runtime) prepare(src []byte, reg *bot.Registry) error {
+	register := r.registrationCall(src, reg)
+	s := tengo.NewScript(src)
+	if err := s.Add("bot", &tengo.UserFunction{Name: "bot", Value: register}); err != nil { return err }
+	if err := s.Add("event", eventObject(bot.Event{})); err != nil { return err }
+	if _, err := s.Run(); err != nil { return fmt.Errorf("run script: %w", err) }
+	return nil
+}
+
 func (r *Runtime) registrationCall(src []byte, reg *bot.Registry) func(...tengo.Object) (tengo.Object, error) {
 	return func(args ...tengo.Object) (tengo.Object, error) {
 		if len(args) < 1 { return nil, tengo.ErrWrongNumArguments }

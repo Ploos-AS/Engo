@@ -119,6 +119,9 @@ func eventFromMessage(m irc.Message) Event {
 		if len(m.Params)>=3 { ev.RealName=m.Params[2] } else if len(m.Params)>=2 { ev.RealName=m.Trailing }
 	case "PART": ev.Name = "part"
 	case "NOTICE": ev.Name = "notice"
+	case "ACCOUNT":
+		ev.Name = "account"
+		if len(m.Params)>0 { ev.Account=m.Params[0]; if ev.Account=="*"{ev.Account=""} } else { ev.Account=m.Trailing; if ev.Account=="*"{ev.Account=""} }
 	default:
 		if m.Command != "" { ev.Name = strings.ToLower(m.Command) }
 	}

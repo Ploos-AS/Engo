@@ -270,7 +270,8 @@ func TestNickChangeKeepsProtectedCommandForSameUserhost(t *testing.T){
 
 func TestAccountPermissionRequiresVerifiedProvenance(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "provenance.tengo")
-	writeScript(t, path, "bot(\\\"command\\\",\\\"reload\\\",\\\"reload\\\")\\nif bot(\\\"active\\\",\\\"reload\\\") { bot(\\\"say\\\",event[\\\"target\\\"],\\\"ran\\\") }")
+	writeScript(t, path, `bot("command","reload","reload")
+if bot("active","reload") { bot("say",event["target"],"ran") }`)
 	sender := &captureSender{}
 	b := bot.New(sender)
 	rt := New(path, b)

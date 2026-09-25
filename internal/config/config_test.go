@@ -60,7 +60,7 @@ func TestValidateSASLRequiresTLS(t *testing.T){
 }
 
 func TestValidateIRCCapabilities(t *testing.T){
-	for _,capability:=range []string{"account-notify","extended-join","server-time"}{
+	for _,capability:=range []string{"account-notify","account-tag","extended-join","server-time"}{
 		if err:=validateIRCCapability(capability);err!=nil{t.Fatalf("%s rejected: %v",capability,err)}
 	}
 	for _,capability:=range []string{"sasl","echo-message","unknown"}{

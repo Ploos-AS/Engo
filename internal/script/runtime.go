@@ -18,11 +18,12 @@ type Runtime struct {
 	src []byte
 	maxAllocs int64
 	store *Store
+	scheduler *Scheduler
 }
 
 func New(path string,b *bot.Bot)*Runtime{return NewLimited(path,b,100000)}
 func NewLimited(path string,b *bot.Bot,maxAllocs int64)*Runtime{
-	return &Runtime{path:path,bot:b,maxAllocs:maxAllocs,store:NewStore("",scriptNamespace(path))}
+	return &Runtime{path:path,bot:b,maxAllocs:maxAllocs,store:NewStore("",scriptNamespace(path)),scheduler:NewScheduler()}
 }
 func (r *Runtime) SetStore(s *Store){r.store=s}
 func (r *Runtime) Load()error{return r.Reload()}
@@ -62,6 +63,14 @@ func (r *Runtime) eventCall(active string)func(...tengo.Object)(tengo.Object,err
 		switch op{
 		case "on","command":return tengo.UndefinedValue,nil
 		case "active":if len(args)!=2{return nil,tengo.ErrWrongNumArguments};id,_:=tengo.ToString(args[1]);return tengo.FromInterface(id==active)
+		case "timer_after":
+			if len(args)!=3{return nil,tengo.ErrWrongNumArguments};duration,ok1:=tengo.ToString(args[1]);id,ok2:=tengo.ToString(args[2]);if !ok1||!ok2||strings.TrimSpace(id)==""{return nil,fmt.Errorf("timer_after requires duration and handler id strings")}
+			d,err:=parseTimerDuration(duration);if err!=nil{return nil,err}
+			timerID:=active+":"+id
+			r.scheduler.After(timerID,d,func(){if err:=r.runHandler(r.currentSource(),id,bot.Event{Name:"timer"});err!=nil{fmt.Printf("Engo timer %s: %v\n",id,err)}})
+			return tengo.UndefinedValue,nil
+		case "timer_cancel":
+			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};id,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("timer id must be string")};return tengo.FromInterface(r.scheduler.Cancel(active+":"+id))
 		case "kv_get":
 			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};key,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("kv key must be string")};v,found,err:=r.store.Get(key);if err!=nil{return nil,err};if !found{return tengo.UndefinedValue,nil};return tengo.FromInterface(v)
 		case "kv_set":
@@ -74,6 +83,8 @@ func (r *Runtime) eventCall(active string)func(...tengo.Object)(tengo.Object,err
 		default:return nil,fmt.Errorf("unknown bot operation %q",op)}
 	}
 }
+func (r *Runtime) currentSource()[]byte{r.mu.RLock();defer r.mu.RUnlock();return append([]byte(nil),r.src...)}
+func (r *Runtime) Stop(){r.scheduler.CancelAll()}
 func eventObject(ev bot.Event)map[string]interface{}{args:=make([]interface{},len(ev.Args));for i,a:=range ev.Args{args[i]=a};return map[string]interface{}{"name":ev.Name,"nick":ev.Nick,"target":ev.Target,"text":ev.Text,"command":ev.Command,"args":args}}
 func scriptNamespace(path string)string{return strings.TrimSuffix(filepath.Base(path),filepath.Ext(path))}
 type discardSender struct{}

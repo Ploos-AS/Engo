@@ -23,6 +23,9 @@ func NewScheduler() *Scheduler {
 }
 
 func (s *Scheduler) After(id string, d time.Duration, fn func()) error {
+	if d <= 0 {
+		return fmt.Errorf("timer duration must be positive")
+	}
 	s.mu.Lock()
 	if old, ok := s.timers[id]; ok {
 		delete(s.timers, id)
@@ -51,6 +54,9 @@ func (s *Scheduler) After(id string, d time.Duration, fn func()) error {
 }
 
 func (s *Scheduler) Every(id string, d time.Duration, fn func()) error {
+	if d <= 0 {
+		return fmt.Errorf("timer duration must be positive")
+	}
 	s.mu.Lock()
 	if old, ok := s.timers[id]; ok {
 		delete(s.timers, id)

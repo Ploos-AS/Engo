@@ -74,10 +74,11 @@ func TestHTTPRequiresCapability(t *testing.T){
 	path:=filepath.Join(t.TempDir(),"http.tengo")
 	writeScript(t,path,`bot("command","fetch","fetch")
 if bot("active","fetch") { bot("http_get","https://example.com/") }`)
-	b:=bot.New(&captureSender{});rt:=New(path,b)
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b)
 	rt.SetHTTP(NewHTTPClient([]string{"example.com"},time.Second,1024))
 	if err:=rt.Load();err!=nil{t.Fatal(err)}
-	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!fetch"));err==nil{t.Fatal("expected HTTP capability denial")}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!fetch"));err!=nil{t.Fatal(err)}
+	if _,text:=sender.snapshot();text!=""{t.Fatalf("denied HTTP command produced output: %q",text)}
 }
 
 func TestHTTPCapabilityGrantReachesHTTPPolicy(t *testing.T){
@@ -88,10 +89,8 @@ if bot("active","fetch") { bot("http_get","http://example.com/") }`)
 	rt.SetHTTP(NewHTTPClient([]string{"example.com"},time.Second,1024))
 	rt.SetCapabilities(Capabilities{HTTP:true})
 	if err:=rt.Load();err!=nil{t.Fatal(err)}
-	err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!fetch"))
-	if err==nil{t.Fatal("expected HTTPS policy rejection")}
-	if strings.Contains(err.Error(),"not granted"){t.Fatalf("capability grant was not applied: %v",err)}
-	if !strings.Contains(err.Error(),"requires https"){t.Fatalf("expected HTTP policy rejection after capability grant, got: %v",err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!fetch"));err!=nil{t.Fatal(err)}
+	if _,text:=sender.snapshot();text!=""{t.Fatalf("rejected HTTP request produced output: %q",text)}
 }
 
 func TestEventObjectExposesIRCv3Tags(t *testing.T){

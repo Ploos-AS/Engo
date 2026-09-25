@@ -110,3 +110,23 @@ if bot("active","fired"){bot("say",event["target"],"timer-fired")}`)
 	}
 	t.Fatal("old generation timer was lost after failed reload")
 }
+
+func TestManagerSuccessfulReloadCancelsOldTimers(t *testing.T){
+	dir:=t.TempDir()
+	path:=filepath.Join(dir,"timer.tengo")
+	writeScript(t,path,`bot("command","start","start")
+if bot("active","start"){bot("timer_after","1s","old-fired")}
+if bot("active","old-fired"){bot("say",event["target"],"old-timer-fired")}`)
+	s:=&captureSender{};b:=bot.New(s);m:=NewManager(dir,b)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!start"))
+	writeScript(t,path,`bot("command","new","new")
+if bot("active","new"){bot("say",event["target"],"new-generation")}`)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	s.text=""
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!new"))
+	if s.text!="new-generation"{t.Fatalf("new registry not active: %q",s.text)}
+	s.text=""
+	time.Sleep(1200*time.Millisecond)
+	if s.text!=""{t.Fatalf("old generation timer fired after successful reload: %q",s.text)}
+}

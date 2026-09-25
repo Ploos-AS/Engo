@@ -99,3 +99,11 @@ func TestEventObjectExposesIRCv3Tags(t *testing.T){
 	tags,ok:=obj["tags"].(map[string]interface{});if !ok{t.Fatalf("unexpected tags type: %T",obj["tags"])}
 	if tags["time"]!="2026-09-25T09:30:00.000Z"||tags["account"]!="alice"{t.Fatalf("unexpected tags: %#v",tags)}
 }
+
+func TestExtendedJoinIdentityInEvent(t *testing.T){
+	m:=irc.ParseMessage(":alice!u@example JOIN #engo alice :Alice Example")
+	ev:=bot.Event{Name:"join",Nick:m.Nick,Target:m.Target(),Account:m.Params[1],RealName:m.Trailing,Message:m}
+	obj:=eventObject(ev)
+	if obj["account"]!="alice"{t.Fatalf("unexpected account: %#v",obj["account"])}
+	if obj["realname"]!="Alice Example"{t.Fatalf("unexpected realname: %#v",obj["realname"])}
+}

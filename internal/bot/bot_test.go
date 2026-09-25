@@ -89,3 +89,23 @@ func TestISupportCaseMapping(t *testing.T){
 		if (got=="account-one")!=tc.want{t.Fatalf("mapping %s lookup account=%q want match=%v",tc.mapping,got,tc.want)}
 	})}
 }
+
+
+func TestCaseMappingChangeClearsIdentityCache(t *testing.T){
+	b:=New(&testSender{});var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":server 005 engo CASEMAPPING=ascii :supported"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!=""{t.Fatalf("CASEMAPPING change retained stale identity: %q",got)}
+}
+
+func TestRepeatedCaseMappingDoesNotClearIdentityCache(t *testing.T){
+	b:=New(&testSender{});var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":server 005 engo CASEMAPPING=rfc1459 :supported"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":server 005 engo CASEMAPPING=rfc1459 :supported"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!="alice-account"{t.Fatalf("unchanged CASEMAPPING cleared valid identity: %q",got)}
+}

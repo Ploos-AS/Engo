@@ -88,3 +88,10 @@ func TestPermissionNameValidation(t *testing.T){
 	for _,name:=range []string{"admin","irc.operator","script.reload","moderation-kick","ops_1"}{if err:=validatePermissionName(name);err!=nil{t.Fatalf("valid permission %q rejected: %v",name,err)}}
 	for _,name:=range []string{"","Admin",".admin","admin.","admin..reload","admin reload","admin:reload","ådmín"}{if err:=validatePermissionName(name);err==nil{t.Fatalf("invalid permission %q accepted",name)}}
 }
+
+func TestAuthorizationIdentifierValidation(t *testing.T){
+	for _,name:=range []string{"alice","Alice.Account","services-account","user_1"}{if err:=validateAccountName(name);err!=nil{t.Fatalf("valid account %q rejected: %v",name,err)}}
+	for _,name:=range []string{"","alice account","alice:admin","alice/account"}{if err:=validateAccountName(name);err==nil{t.Fatalf("invalid account %q accepted",name)}}
+	for _,name:=range []string{"reload","op-kick","script_1"}{if err:=validateCommandName(name);err!=nil{t.Fatalf("valid command %q rejected: %v",name,err)}}
+	for _,name:=range []string{"","Reload","op.kick","op kick","op:kick"}{if err:=validateCommandName(name);err==nil{t.Fatalf("invalid command %q accepted",name)}}
+}

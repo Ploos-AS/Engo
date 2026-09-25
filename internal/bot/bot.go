@@ -39,10 +39,11 @@ type Bot struct {
 	handlers map[string][]Handler
 	commands map[string]Handler
 	prefix string
+	accounts map[string]string
 }
 
 func New(sender Sender) *Bot {
-	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), prefix: "!"}
+	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), prefix: "!", accounts: make(map[string]string)}
 }
 
 func NewRegistry() Registry {
@@ -71,7 +72,12 @@ func (b *Bot) Command(name string, handler Handler) {
 }
 
 func (b *Bot) Handle(m irc.Message) error {
+	b.mu.Lock()
+	if m.Command=="ACCOUNT"{account:="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]};if account==""{delete(b.accounts,m.Nick)}else{b.accounts[m.Nick]=account}}
+	account:=b.accounts[m.Nick]
+	b.mu.Unlock()
 	ev := eventFromMessage(m)
+	if ev.Account==""{ev.Account=account}
 	if ev.Name == "" { return nil }
 
 	b.mu.RLock()

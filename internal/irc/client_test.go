@@ -354,3 +354,16 @@ func TestRunRejectsCAPNAKBeforeRequest(t *testing.T){
  case <-time.After(time.Second):t.Fatal("Run() did not reject CAP NAK before CAP REQ")
  }
 }
+
+
+func TestRunRejectsCAPDELBeforeRequest(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}()
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * DEL :account-tag");err!=nil{t.Fatal(err)}
+ select{
+ case err:=<-errCh:
+  if err==nil||!strings.Contains(err.Error(),"unexpected CAP DEL before CAP REQ"){t.Fatalf("Run() error=%v",err)}
+ case <-time.After(time.Second):t.Fatal("Run() did not reject CAP DEL before CAP REQ")
+ }
+}

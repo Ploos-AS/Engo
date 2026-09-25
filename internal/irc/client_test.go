@@ -124,15 +124,17 @@ func TestCapabilityNamesNormalizeModifiers(t *testing.T){
 }
 
 
-func TestNegativeCapabilityACKDoesNotCompleteNegotiation(t *testing.T){
+func TestNegativeCapabilityACKFailsFast(t *testing.T){
 	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
 	c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
 	done:=make(chan error,1);go func(){done<-c.Run()}()
 	if _,err:=serverConn.Write([]byte(":irc.example CAP engo LS :account-tag\r\n"));err!=nil{t.Fatal(err)}
 	buf:=make([]byte,256);if _,err:=serverConn.Read(buf);err!=nil{t.Fatal(err)}
 	if _,err:=serverConn.Write([]byte(":irc.example CAP engo ACK :-account-tag\r\n"));err!=nil{t.Fatal(err)}
-	_ = serverConn.SetReadDeadline(time.Now().Add(30*time.Millisecond))
-	n,err:=serverConn.Read(buf)
-	if err==nil&&strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("negative ACK incorrectly completed negotiation")}
-	_ = clientConn.Close();<-done
+	select{
+	case err:=<-done:
+		if err==nil||!strings.Contains(err.Error(),"disabled requested IRC capability"){t.Fatalf("unexpected error: %v",err)}
+	case <-time.After(100*time.Millisecond):
+		t.Fatal("negative ACK did not fail fast")
+	}
 }

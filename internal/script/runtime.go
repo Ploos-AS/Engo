@@ -17,7 +17,7 @@ type Runtime struct {
 	src []byte
 }
 
-func New(path string, b *bot.Bot) *Runtime { return &Runtime{path: path, bot: b} }
+func New(path string, b *bot.Bot) *Runtime { return NewLimited(path, b, 100000) }\n\nfunc NewLimited(path string, b *bot.Bot, maxAllocs int64) *Runtime { return &Runtime{path: path, bot: b, maxAllocs: maxAllocs} }
 
 func (r *Runtime) Load() error { return r.Reload() }
 

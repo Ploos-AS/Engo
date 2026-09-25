@@ -20,7 +20,9 @@ func main(){
 	ctx,stop:=signal.NotifyContext(context.Background(),os.Interrupt,syscall.SIGTERM);defer stop()
 	delay:=cfg.ReconnectMin
 	for{
+		started:=time.Now()
 		err:=runIRC(ctx,cfg);if ctx.Err()!=nil{return}
+		if shouldResetBackoff(time.Since(started),cfg.ReconnectMax){delay=cfg.ReconnectMin}
 		fmt.Fprintf(os.Stderr,"engo: IRC session ended: %v; reconnecting in %s\n",err,delay)
 		timer:=time.NewTimer(delay);select{case<-ctx.Done():timer.Stop();return;case<-timer.C:}
 		delay*=2;if delay>cfg.ReconnectMax{delay=cfg.ReconnectMax}
@@ -61,6 +63,8 @@ func scriptNamespace(path string)string{
 	for i:=len(base)-1;i>=0;i--{if base[i]=='.'{return base[:i]}}
 	return base
 }
+func shouldResetBackoff(sessionDuration,threshold time.Duration)bool{return sessionDuration>=threshold}
+
 func fatal(err error){fmt.Fprintln(os.Stderr,"engo:",err);os.Exit(1)}
 
 func filepathBase(path string)string{

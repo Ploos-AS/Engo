@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type timerEntry struct{ stop func() bool }
+type timerEntry struct{ stop func() bool; token *struct{} }
 
 type Scheduler struct {
 	mu sync.Mutex
@@ -24,7 +24,7 @@ func (s *Scheduler) After(id string,d time.Duration,fn func()){
 		s.mu.Unlock()
 		fn()
 	})
-	s.mu.Lock();s.timers[id]=timerEntry{stop:t.Stop};s.mu.Unlock()
+	s.mu.Lock();s.timers[id]=timerEntry{stop:t.Stop,token:token};s.mu.Unlock()
 }
 
 func (s *Scheduler) Every(id string,d time.Duration,fn func()){

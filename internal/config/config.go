@@ -26,6 +26,7 @@ type Config struct {
 	SASLUsername string
 	SASLPassword string
 	AllowInsecureSASL bool
+	IRCCapabilities []string
 	ReconnectMin time.Duration
 	ReconnectMax time.Duration
 }
@@ -49,6 +50,7 @@ func FromEnv() Config {
 		SASLUsername: os.Getenv("ENGO_SASL_USERNAME"),
 		SASLPassword: os.Getenv("ENGO_SASL_PASSWORD"),
 		AllowInsecureSASL: getenv("ENGO_ALLOW_INSECURE_SASL","0")=="1",
+		IRCCapabilities: csvEnv("ENGO_IRC_CAPABILITIES"),
 		ReconnectMin: durationEnv("ENGO_RECONNECT_MIN",2*time.Second),
 		ReconnectMax: durationEnv("ENGO_RECONNECT_MAX",2*time.Minute),
 	}
@@ -62,6 +64,7 @@ func (c Config) Validate() error {
 	if c.Nick=="" || c.User=="" || c.RealName=="" { return fmt.Errorf("nick, user and real name must not be empty") }
 	if (c.SASLUsername=="")!=(c.SASLPassword=="") { return fmt.Errorf("ENGO_SASL_USERNAME and ENGO_SASL_PASSWORD must be set together") }
 	if c.SASLUsername!=""&&!c.TLS&&!c.AllowInsecureSASL{return fmt.Errorf("SASL credentials require TLS; set ENGO_ALLOW_INSECURE_SASL=1 to override") }
+	for _,capability:=range c.IRCCapabilities{if err:=validateIRCCapability(capability);err!=nil{return err}}
 	if c.ReconnectMin<=0 || c.ReconnectMax<c.ReconnectMin { return fmt.Errorf("invalid reconnect interval") }
 	return nil
 }
@@ -108,4 +111,15 @@ func validateCapabilities(raw string)error{
 		}
 	}
 	return nil
+}
+
+func validateIRCCapability(capability string)error{
+	switch strings.ToLower(strings.TrimSpace(capability)){
+	case "account-notify","extended-join","server-time":
+		return nil
+	case "sasl":
+		return fmt.Errorf("sasl is managed automatically from ENGO_SASL_USERNAME/ENGO_SASL_PASSWORD")
+	default:
+		return fmt.Errorf("unsupported ENGO_IRC_CAPABILITIES capability %q",capability)
+	}
 }

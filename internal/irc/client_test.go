@@ -82,3 +82,21 @@ func TestNonSASLCapabilityACKEndsNegotiation(t *testing.T){
 	if !strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("non-SASL ACK did not end negotiation: %q",buf[:n])}
 	_ = clientConn.Close();<-done
 }
+
+
+func TestPartialCapabilityACKWaitsForAllRequested(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
+	c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag","server-time"}},registrationTimeout:time.Second}
+	done:=make(chan error,1);go func(){done<-c.Run()}()
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo LS :account-tag server-time\r\n"));err!=nil{t.Fatal(err)}
+	buf:=make([]byte,256);n,err:=serverConn.Read(buf);if err!=nil{t.Fatal(err)}
+	if !strings.Contains(string(buf[:n]),"CAP REQ :account-tag server-time"){t.Fatalf("missing CAP REQ: %q",buf[:n])}
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo ACK :account-tag\r\n"));err!=nil{t.Fatal(err)}
+	_ = serverConn.SetReadDeadline(time.Now().Add(30*time.Millisecond))
+	if n,err=serverConn.Read(buf);err==nil&&strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("CAP END sent before all capabilities ACKed")}
+	_ = serverConn.SetReadDeadline(time.Time{})
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo ACK :server-time\r\n"));err!=nil{t.Fatal(err)}
+	n,err=serverConn.Read(buf);if err!=nil{t.Fatal(err)}
+	if !strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("CAP END missing after all ACKs: %q",buf[:n])}
+	_ = clientConn.Close();<-done
+}

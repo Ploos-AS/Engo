@@ -1,2 +1,13 @@
-fmt := import("fmt")
-fmt.println("Engo M0: Tengo runtime ready")
+// Engo Tengo scripts register named handlers.
+// During an event, bot("active", id) selects the handler being dispatched.
+
+bot("command", "hello", "hello")
+
+if bot("active", "hello") {
+	reply := event["target"]
+	// Private messages are replied to the sender.
+	if reply == "" || reply == "engo" {
+		reply = event["nick"]
+	}
+	bot("say", reply, "Hello " + event["nick"] + "!")
+}

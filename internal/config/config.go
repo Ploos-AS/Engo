@@ -21,6 +21,7 @@ type Config struct {
 	HTTPAllow []string
 	HTTPTimeout time.Duration
 	HTTPMaxBody int64
+	ScriptCapabilities map[string][]string
 	SASLUsername string
 	SASLPassword string
 	ReconnectMin time.Duration
@@ -41,6 +42,7 @@ func FromEnv() Config {
 		HTTPAllow: csvEnv("ENGO_HTTP_ALLOW"),
 		HTTPTimeout: durationEnv("ENGO_HTTP_TIMEOUT",10*time.Second),
 		HTTPMaxBody: int64Env("ENGO_HTTP_MAX_BODY",262144),
+		ScriptCapabilities: capabilityEnv("ENGO_SCRIPT_CAPABILITIES"),
 		SASLUsername: os.Getenv("ENGO_SASL_USERNAME"),
 		SASLPassword: os.Getenv("ENGO_SASL_PASSWORD"),
 		ReconnectMin: durationEnv("ENGO_RECONNECT_MIN",2*time.Second),
@@ -72,3 +74,17 @@ func int64Env(key string,fallback int64) int64 {
 }
 
 func csvEnv(key string)[]string{v:=strings.TrimSpace(os.Getenv(key));if v==""{return nil};parts:=strings.Split(v,",");out:=parts[:0];for _,p:=range parts{if p=strings.TrimSpace(p);p!=""{out=append(out,p)}};return out}
+
+func capabilityEnv(key string)map[string][]string{
+	out:=make(map[string][]string)
+	for _,entry:=range csvEnv(key){
+		parts:=strings.SplitN(entry,":",2)
+		if len(parts)!=2{continue}
+		name:=strings.TrimSpace(parts[0])
+		if name==""{continue}
+		for _,capability:=range strings.Split(parts[1],"+"){
+			if capability=strings.ToLower(strings.TrimSpace(capability));capability!=""{out[name]=append(out[name],capability)}
+		}
+	}
+	return out
+}

@@ -95,3 +95,11 @@ func TestAuthorizationIdentifierValidation(t *testing.T){
 	for _,name:=range []string{"reload","op-kick","script_1"}{if err:=validateCommandName(name);err!=nil{t.Fatalf("valid command %q rejected: %v",name,err)}}
 	for _,name:=range []string{"","Reload","op.kick","op kick","op:kick"}{if err:=validateCommandName(name);err==nil{t.Fatalf("invalid command %q accepted",name)}}
 }
+
+
+func TestScriptCapabilityNamesRejectTraversal(t *testing.T){
+	bad:=[]string{"../weather.tengo:http","dir/weather.tengo:http","dir\\\\weather.tengo:http","..tengo:http","weather..prod.tengo:http","weather$.tengo:http"}
+	for _,raw:=range bad{if err:=validateScriptCapabilityNames(raw);err==nil{t.Fatalf("expected rejection for %q",raw)}}
+	good:=[]string{"weather.tengo:http","weather-prod_1.tengo:http","weather.prod.tengo:http"}
+	for _,raw:=range good{if err:=validateScriptCapabilityNames(raw);err!=nil{t.Fatalf("valid name %q rejected: %v",raw,err)}}
+}

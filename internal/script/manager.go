@@ -14,7 +14,7 @@ import (
 type Manager struct {
 	dir string
 	bot *bot.Bot
-	maxAllocs int64
+	maxAllocs int64\n\tstateDir string
 	mu sync.RWMutex
 	runtimes map[string]*Runtime
 	disabled map[string]bool
@@ -84,7 +84,7 @@ func (m *Manager) reloadCurrent() error {
 func (m *Manager) activate(paths []string) error {
 	reg:=bot.NewRegistry();next:=make(map[string]*Runtime,len(paths))
 	for _,path:=range paths{
-		rt:=NewLimited(path,m.bot,m.maxAllocs)
+		rt:=NewLimited(path,m.bot,m.maxAllocs)\n\t\trt.SetStore(NewStore(m.stateDir,scriptNamespace(path)))
 		src,err:=os.ReadFile(path);if err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		rt.src=append([]byte(nil),src...);next[path]=rt

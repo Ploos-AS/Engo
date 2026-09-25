@@ -21,3 +21,8 @@ func TestUnescapeTag(t *testing.T) {
 	want := "one two;three\\four\r\nfive"
 	if got != want { t.Fatalf("got %q, want %q", got, want) }
 }
+
+func TestParseAccountNotify(t *testing.T){
+	m:=ParseMessage(":alice!u@example ACCOUNT services-account")
+	if m.Nick!="alice"||m.Command!="ACCOUNT"||len(m.Params)!=1||m.Params[0]!="services-account"{t.Fatalf("unexpected ACCOUNT message: %#v",m)}
+}

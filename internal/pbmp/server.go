@@ -29,12 +29,12 @@ type request struct {
 	Params map[string]any `json:"params"`
 }
 type response struct {
-	PBMP     int    `json:"pbmp"`
-	Type string `json:"type"`
-	ID string `json:"id"`
-	OK       bool   `json:"ok"`
-	Result   any    `json:"result,omitempty"`
-	Error    any    `json:"error,omitempty"`
+	PBMP   int    `json:"pbmp"`
+	Type   string `json:"type"`
+	ID     string `json:"id"`
+	OK     bool   `json:"ok"`
+	Result any    `json:"result,omitempty"`
+	Error  any    `json:"error,omitempty"`
 }
 
 func Handle(in []byte, s *State) ([]byte, error) {

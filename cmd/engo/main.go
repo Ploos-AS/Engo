@@ -71,6 +71,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 	defer pbstate.SetActions(nil, nil)
 	pbstate.SetConnected(true)
 	pbstate.SetActions(client.Join, client.Part)
+	pbstate.SetModules(mgr.Modules)
 	b := bot.New(client)
 	var reloadScripts func() error
 	if cfg.ScriptsDir != "" {

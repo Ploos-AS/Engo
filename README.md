@@ -66,7 +66,8 @@ Configuration variables:
 | `ENGO_SASL_PASSWORD` | empty | SASL PLAIN password; requires username |
 | `ENGO_RECONNECT_MIN` | `2s` | Initial reconnect delay |
 | `ENGO_RECONNECT_MAX` | `2m` | Maximum reconnect delay |
-| `ENGO_PBMP_SOCKET` | empty | Optional local PBMP/1 Unix socket; e.g. `/tmp/engo.pbmp.sock` |\n| `ENGO_CHANNELS` | empty | Comma-separated configured channels exposed through PBMP `channels.list` |
+| `ENGO_PBMP_SOCKET` | empty | Optional local PBMP/1 Unix socket; e.g. `/tmp/engo.pbmp.sock` |
+| `ENGO_CHANNELS` | empty | Comma-separated configured channels exposed through PBMP `channels.list` |
 
 ## OCI
 

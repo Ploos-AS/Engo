@@ -226,6 +226,7 @@ func (m *Manager) activate(paths []string) error {
 	return nil
 }
 
+func (m *Manager) Modules() []map[string]any { m.mu.RLock(); defer m.mu.RUnlock(); out:=make([]map[string]any,0,len(m.runtimes)+len(m.disabled)); for path:=range m.runtimes { name:=filepath.Base(path); caps:=[]string{}; c:=m.capabilities[name]; if c.HTTP { caps=append(caps,"http") }; out=append(out,map[string]any{"id":name,"runtime":"tengo","state":"active","capabilities":caps}) }; for name,off:=range m.disabled { if off { out=append(out,map[string]any{"id":name,"runtime":"tengo","state":"disabled","capabilities":[]string{}}) } }; sort.Slice(out,func(i,j int)bool{return out[i]["id"].(string)<out[j]["id"].(string)}); return out }
 func (m *Manager) Scripts() []string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

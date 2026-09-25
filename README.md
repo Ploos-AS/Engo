@@ -2,18 +2,22 @@
 
 Engo is an IRC bot implemented in Go with [Tengo](https://github.com/d5/tengo) as its embedded scripting language.
 
-M0 establishes the project foundation: a buildable Go executable, minimal IRC registration/PING-PONG handling, Tengo execution, tests, CI and an Alpine-based OCI image.
+M0 established the project foundation. M1 adds the first robust IRC connection lifecycle: configuration validation, TLS, SASL PLAIN, reconnect/backoff and graceful shutdown.
 
 ## Status
 
-**M0 — foundation**
+**M1 — IRC connection lifecycle**
 
 Implemented:
 
 - Go module and `cmd/engo` executable
-- minimal IRC client with TLS support
-- `NICK` / `USER` registration
+- IRC client with TLS support and TLS 1.2 minimum
+- `NICK` / `USER` registration and IRCv3 CAP negotiation
+- optional SASL PLAIN authentication
 - IRC `PING` / `PONG`
+- exponential reconnect/backoff
+- graceful SIGINT/SIGTERM shutdown
+- configuration validation
 - embedded Tengo runtime
 - example Tengo script
 - unit test for script execution
@@ -49,6 +53,10 @@ Configuration variables:
 | `ENGO_REALNAME` | `Engo IRC bot` | IRC real name |
 | `ENGO_TLS` | `1` | TLS enabled unless set to `0` |
 | `ENGO_SCRIPT` | `scripts/examples/hello.tengo` | Tengo script run at startup |
+| `ENGO_SASL_USERNAME` | empty | SASL PLAIN authentication identity; requires password |
+| `ENGO_SASL_PASSWORD` | empty | SASL PLAIN password; requires username |
+| `ENGO_RECONNECT_MIN` | `2s` | Initial reconnect delay |
+| `ENGO_RECONNECT_MAX` | `2m` | Maximum reconnect delay |
 
 ## OCI
 

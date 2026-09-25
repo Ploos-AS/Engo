@@ -3,6 +3,8 @@ package script
 import (
 	"net"
 	"net/http"
+	"io"
+	"strings"
 	"net/url"
 	"testing"
 	"time"
@@ -76,4 +78,28 @@ func TestHTTPRedirectLimit(t *testing.T){
 	req:=&http.Request{URL:&url.URL{Scheme:"https",Host:"allowed.example"}}
 	via:=make([]*http.Request,5)
 	if err:=h.client.CheckRedirect(req,via);err==nil{t.Fatal("expected redirect limit rejection")}
+}
+
+type roundTripFunc func(*http.Request)(*http.Response,error)
+func (f roundTripFunc) RoundTrip(r *http.Request)(*http.Response,error){return f(r)}
+
+func TestHTTPResponseBodyLimit(t *testing.T){
+	h:=NewHTTPClient([]string{"allowed.example"},time.Second,4)
+	h.lookupIP=func(string)([]net.IP,error){return []net.IP{net.ParseIP("8.8.8.8")},nil}
+	h.client.Transport=roundTripFunc(func(*http.Request)(*http.Response,error){
+		return &http.Response{StatusCode:200,Header:make(http.Header),Body:io.NopCloser(strings.NewReader("12345"))},nil
+	})
+	if _,err:=h.Get("https://allowed.example/");err==nil{t.Fatal("expected response body limit error")}
+}
+func TestHTTPResponseWithinBodyLimit(t *testing.T){
+	h:=NewHTTPClient([]string{"allowed.example"},time.Second,5)
+	h.lookupIP=func(string)([]net.IP,error){return []net.IP{net.ParseIP("8.8.8.8")},nil}
+	h.client.Transport=roundTripFunc(func(*http.Request)(*http.Response,error){
+		header:=make(http.Header);header.Set("Content-Type","text/plain")
+		return &http.Response{StatusCode:200,Header:header,Body:io.NopCloser(strings.NewReader("12345"))},nil
+	})
+	res,err:=h.Get("https://allowed.example/")
+	if err!=nil{t.Fatalf("unexpected response error: %v",err)}
+	if res["body"]!="12345"{t.Fatalf("unexpected body: %v",res["body"])}
+	if res["status"]!=int64(200){t.Fatalf("unexpected status: %v",res["status"])}
 }

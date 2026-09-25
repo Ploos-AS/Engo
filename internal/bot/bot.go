@@ -73,20 +73,21 @@ func (b *Bot) Command(name string, handler Handler) {
 
 func (b *Bot) Handle(m irc.Message) error {
 	b.mu.Lock()
-	account:=b.accounts[m.Nick]
+	nickKey:=ircNickKey(m.Nick)
+	account:=b.accounts[nickKey]
 	if tagged,ok:=m.Tags["account"];ok {
 		account=tagged
-		if account==""||account=="*"{account="";delete(b.accounts,m.Nick)}else{b.accounts[m.Nick]=account}
+		if account==""||account=="*"{account="";delete(b.accounts,nickKey)}else{b.accounts[nickKey]=account}
 	}
 	switch m.Command {
 	case "ACCOUNT":
-		account="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]};if account==""{delete(b.accounts,m.Nick)}else{b.accounts[m.Nick]=account}
+		account="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]};if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=account}
 	case "JOIN":
-		if len(m.Params)>=2 { account=m.Params[1]; if account=="*"{account=""}; if account==""{delete(b.accounts,m.Nick)}else{b.accounts[m.Nick]=account} }
+		if len(m.Params)>=2 { account=m.Params[1]; if account=="*"{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=account} }
 	case "NICK":
-		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,m.Nick);b.accounts[newNick]=account}
+		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,nickKey);b.accounts[newNick]=account}
 	case "QUIT":
-		delete(b.accounts,m.Nick)
+		delete(b.accounts,nickKey)
 	}
 	b.mu.Unlock()
 	ev := eventFromMessage(m)
@@ -145,4 +146,19 @@ func eventFromMessage(m irc.Message) Event {
 		if m.Command != "" { ev.Name = strings.ToLower(m.Command) }
 	}
 	return ev
+}
+
+func ircNickKey(nick string)string{
+	var b strings.Builder;b.Grow(len(nick))
+	for _,r:=range nick{
+		switch r{
+		case 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z':r+=32
+		case '[':r='{'
+		case ']':r='}'
+		case '\\':r='|'
+		case '^':r='~'
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

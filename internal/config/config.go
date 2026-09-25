@@ -15,7 +15,7 @@ type Config struct {
 	TLS bool
 	Script string
 	ScriptsDir string
-	ScriptMaxAllocs int64
+	ScriptMaxAllocs int64\n\tStateDir string
 	SASLUsername string
 	SASLPassword string
 	ReconnectMin time.Duration
@@ -31,7 +31,7 @@ func FromEnv() Config {
 		TLS: getenv("ENGO_TLS","1")!="0",
 		Script: getenv("ENGO_SCRIPT","scripts/examples/hello.tengo"),
 		ScriptsDir: os.Getenv("ENGO_SCRIPTS_DIR"),
-		ScriptMaxAllocs: int64Env("ENGO_SCRIPT_MAX_ALLOCS",100000),
+		ScriptMaxAllocs: int64Env("ENGO_SCRIPT_MAX_ALLOCS",100000),\n\t\tStateDir: getenv("ENGO_STATE_DIR","data/state"),
 		SASLUsername: os.Getenv("ENGO_SASL_USERNAME"),
 		SASLPassword: os.Getenv("ENGO_SASL_PASSWORD"),
 		ReconnectMin: durationEnv("ENGO_RECONNECT_MIN",2*time.Second),

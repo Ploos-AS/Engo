@@ -236,3 +236,22 @@ func TestCAPDELSASLAfterAuthenticationDoesNotDisconnect(t *testing.T){
 	_ = serverConn.Close()
 	if err:=<-done;err!=io.EOF{t.Fatalf("CAP DEL sasl after auth returned %v, want EOF",err)}
 }
+
+
+func TestCAPDELRequiredRuntimeCapabilityDisconnects(t *testing.T){
+	for _,capability:=range []string{"account-tag","account-notify","extended-join","server-time"}{
+		t.Run(capability,func(t *testing.T){
+			clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
+			c:=&Client{conn:clientConn,cfg:Config{Nick:"engo",User:"engo",RealName:"Engo",Capabilities:[]string{capability}},registrationTimeout:time.Second}
+			done:=make(chan error,1);go func(){done<-c.Run()}()
+			write:=func(line string){t.Helper();if _,err:=fmt.Fprintf(serverConn,"%s\r\n",line);err!=nil{t.Fatal(err)}}
+			read:=bufio.NewReader(serverConn)
+			write(":srv CAP engo LS :"+capability);if line,err:=read.ReadString('\n');err!=nil||!strings.Contains(line,"CAP REQ :"+capability){t.Fatalf("CAP REQ=%q err=%v",line,err)}
+			write(":srv CAP engo ACK :"+capability);if line,err:=read.ReadString('\n');err!=nil||!strings.Contains(line,"CAP END"){t.Fatalf("CAP END=%q err=%v",line,err)}
+			write(":srv 001 engo :welcome")
+			write(":srv CAP engo DEL :"+capability)
+			err:=<-done
+			if err==nil||!strings.Contains(err.Error(),"server removed requested IRC capability"){t.Fatalf("CAP DEL %s returned %v",capability,err)}
+		})
+	}
+}

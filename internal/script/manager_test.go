@@ -201,3 +201,14 @@ func TestManagerCopiesPermissionPolicyOnAssignment(t *testing.T){
  if _,ok:=m.permissions["bob"];ok{t.Fatal("permission map aliased caller data")}
  if got:=m.commandPermissions["reload"];got!="admin"{t.Fatalf("command policy aliased caller data: %q",got)}
 }
+
+
+func TestManagerDisableRejectsMissingScript(t *testing.T) {
+	m := NewManager(t.TempDir(), bot.New(&captureSender{}))
+	if err := m.Disable("missing.tengo"); err == nil {
+		t.Fatal("expected missing script error")
+	}
+	if disabled := m.Disabled(); len(disabled) != 0 {
+		t.Fatalf("missing script changed disabled state: %v", disabled)
+	}
+}

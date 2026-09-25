@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/Ploos-AS/Engo/internal/bot"
 	"github.com/Ploos-AS/Engo/internal/irc"
@@ -63,4 +64,14 @@ if bot("active","hello") { bot("say",event["target"],"v2") }`
 	if err:=rt.Reload(); err!=nil { t.Fatal(err) }
 	_ = b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!hello"))
 	if sender.text!="v2" { t.Fatalf("new script not active: %#v",sender) }
+}
+
+func TestHTTPRequiresCapability(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"http.tengo")
+	writeScript(t,path,`bot("command","fetch","fetch")
+if bot("active","fetch") { bot("http_get","https://example.com/") }`)
+	b:=bot.New(&captureSender{});rt:=New(path,b)
+	rt.SetHTTP(NewHTTPClient([]string{"example.com"},time.Second,1024))
+	if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!fetch"));err==nil{t.Fatal("expected HTTP capability denial")}
 }

@@ -18,3 +18,11 @@ func TestNumericCommand(t *testing.T) {
 		t.Fatalf("got %q, want 903", got)
 	}
 }
+
+func TestMultilineCapabilityCollection(t *testing.T){
+	first:=[]string{":irc.example","CAP","engo","LS","*",":multi-prefix","account-notify"}
+	if !capLSContinues(first){t.Fatal("expected CAP LS continuation")}
+	caps:=append(capabilityNames(":irc.example CAP engo LS * :multi-prefix account-notify"),capabilityNames(":irc.example CAP engo LS :sasl=PLAIN echo-message")...)
+	if !containsCapability(caps,"sasl"){t.Fatal("expected SASL from final CAP LS line")}
+	if !containsCapability(caps,"multi-prefix"){t.Fatal("expected capability from continuation line")}
+}

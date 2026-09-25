@@ -40,10 +40,11 @@ type Bot struct {
 	commands map[string]Handler
 	prefix string
 	accounts map[string]string
+	caseMapping string
 }
 
 func New(sender Sender) *Bot {
-	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), prefix: "!", accounts: make(map[string]string)}
+	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), prefix: "!", accounts: make(map[string]string), caseMapping: "rfc1459"}
 }
 
 func NewRegistry() Registry {
@@ -73,7 +74,8 @@ func (b *Bot) Command(name string, handler Handler) {
 
 func (b *Bot) Handle(m irc.Message) error {
 	b.mu.Lock()
-	nickKey:=ircNickKey(m.Nick)
+	if m.Command=="005"{b.applyISupport(m)}
+	nickKey:=ircNickKey(m.Nick,b.caseMapping)
 	account:=b.accounts[nickKey]
 	if tagged,ok:=m.Tags["account"];ok {
 		account=tagged
@@ -148,15 +150,21 @@ func eventFromMessage(m irc.Message) Event {
 	return ev
 }
 
-func ircNickKey(nick string)string{
+func (b *Bot) applyISupport(m irc.Message){
+	for _,p:=range m.Params{
+		if strings.HasPrefix(strings.ToUpper(p),"CASEMAPPING="){
+			v:=strings.ToLower(strings.TrimSpace(strings.SplitN(p,"=",2)[1]))
+			switch v{case "ascii","rfc1459","strict-rfc1459":b.caseMapping=v}
+		}
+	}
+}
+func ircNickKey(nick,caseMapping string)string{
 	var b strings.Builder;b.Grow(len(nick))
 	for _,r:=range nick{
-		switch r{
-		case 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z':r+=32
-		case '[':r='{'
-		case ']':r='}'
-		case '\\':r='|'
-		case '^':r='~'
+		if r>='A'&&r<='Z'{r+=32}
+		if caseMapping!="ascii"{
+			switch r{case '[':r='{';case ']':r='}';case '\\':r='|'}
+			if caseMapping=="rfc1459"&&r=='^'{r='~'}
 		}
 		b.WriteRune(r)
 	}

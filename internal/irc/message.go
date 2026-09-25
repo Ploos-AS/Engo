@@ -4,12 +4,12 @@ import "strings"
 
 // Message is a parsed IRC message suitable for delivery to the bot layer.
 type Message struct {
-	Raw     string
-	Tags    map[string]string
-	Prefix  string
-	Nick    string
-	Command string
-	Params  []string
+	Raw      string
+	Tags     map[string]string
+	Prefix   string
+	Nick     string
+	Command  string
+	Params   []string
 	Trailing string
 }
 
@@ -17,7 +17,10 @@ func ParseMessage(line string) Message {
 	m := Message{Raw: line}
 	rest := line
 	if strings.HasPrefix(rest, "@") {
-		if i := strings.IndexByte(rest, ' '); i >= 0 { m.Tags = parseTags(rest[1:i]); rest = strings.TrimLeft(rest[i+1:], " ") }
+		if i := strings.IndexByte(rest, ' '); i >= 0 {
+			m.Tags = parseTags(rest[1:i])
+			rest = strings.TrimLeft(rest[i+1:], " ")
+		}
 	}
 	if strings.HasPrefix(rest, ":") {
 		if i := strings.IndexByte(rest, ' '); i >= 0 {
@@ -55,9 +58,13 @@ func parseTags(raw string) map[string]string {
 	tags := make(map[string]string)
 	for _, tag := range strings.Split(raw, ";") {
 		parts := strings.SplitN(tag, "=", 2)
-		if parts[0] == "" { continue }
+		if parts[0] == "" {
+			continue
+		}
 		value := ""
-		if len(parts) == 2 { value = unescapeTag(parts[1]) }
+		if len(parts) == 2 {
+			value = unescapeTag(parts[1])
+		}
 		tags[parts[0]] = value
 	}
 	return tags
@@ -66,15 +73,24 @@ func parseTags(raw string) map[string]string {
 func unescapeTag(value string) string {
 	var b strings.Builder
 	for i := 0; i < len(value); i++ {
-		if value[i] != '\\' || i+1 >= len(value) { b.WriteByte(value[i]); continue }
+		if value[i] != '\\' || i+1 >= len(value) {
+			b.WriteByte(value[i])
+			continue
+		}
 		i++
 		switch value[i] {
-		case ':': b.WriteByte(';')
-		case 's': b.WriteByte(' ')
-		case '\\': b.WriteByte('\\')
-		case 'r': b.WriteByte('\r')
-		case 'n': b.WriteByte('\n')
-		default: b.WriteByte(value[i])
+		case ':':
+			b.WriteByte(';')
+		case 's':
+			b.WriteByte(' ')
+		case '\\':
+			b.WriteByte('\\')
+		case 'r':
+			b.WriteByte('\r')
+		case 'n':
+			b.WriteByte('\n')
+		default:
+			b.WriteByte(value[i])
 		}
 	}
 	return b.String()

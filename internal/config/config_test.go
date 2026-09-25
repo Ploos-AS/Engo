@@ -159,3 +159,12 @@ func TestPermissionEnvNormalizesCase(t *testing.T) {
 		t.Fatalf("account permissions not normalized: %#v", cfg.AccountPermissions)
 	}
 }
+
+
+func TestCommandPermissionEnvNormalizesCaseAndWhitespace(t *testing.T) {
+	t.Setenv("ENGO_COMMAND_PERMISSIONS", " Reload:Admin , Kick:Operator ")
+	cfg := FromEnv()
+	if cfg.CommandPermissions["reload"] != "admin" || cfg.CommandPermissions["kick"] != "operator" {
+		t.Fatalf("command permissions not normalized: %#v", cfg.CommandPermissions)
+	}
+}

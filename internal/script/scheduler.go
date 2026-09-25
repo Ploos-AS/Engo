@@ -15,7 +15,7 @@ type Scheduler struct {
 
 const maxActiveTimers = 32\n\nfunc NewScheduler()*Scheduler{return &Scheduler{timers:make(map[string]timerEntry)}}
 
-func (s *Scheduler) After(id string,d time.Duration,fn func())bool{
+func (s *Scheduler) After(id string,d time.Duration,fn func()){
 	s.cancelLocked(id)
 	token:=&struct{}{}
 	var t *time.Timer
@@ -30,7 +30,7 @@ func (s *Scheduler) After(id string,d time.Duration,fn func())bool{
 	s.mu.Lock();s.timers[id]=timerEntry{stop:t.Stop,token:token};s.mu.Unlock()
 }
 
-func (s *Scheduler) Every(id string,d time.Duration,fn func())bool{
+func (s *Scheduler) Every(id string,d time.Duration,fn func()){
 	s.cancelLocked(id)
 	ticker:=time.NewTicker(d)
 	done:=make(chan struct{})

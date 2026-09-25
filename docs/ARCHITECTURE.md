@@ -56,4 +56,4 @@ Output capabilities are `bot("say", target, text)`, `bot("notice", target, text)
 
 The active script is replaced transactionally. Engo first reads and evaluates the candidate into a fresh handler registry; only a successful candidate becomes active. A failed reload leaves the previous handlers untouched. On Unix-like systems, SIGHUP requests reload without dropping the IRC connection.
 
-Runtime errors from an event or command handler are contained at the bot boundary and logged rather than terminating the IRC session. Further M3 work will expand from one script to a managed multi-script directory and add execution resource limits.
+Runtime errors from an event or command handler are contained at the bot boundary and logged rather than terminating the IRC session. A managed multi-script directory is now supported through `ENGO_SCRIPTS_DIR`; all candidate scripts are validated before the active registry is replaced, so one broken script rolls back the complete reload. Further M3 work will add execution resource limits and finer per-script lifecycle controls.

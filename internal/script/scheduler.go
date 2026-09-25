@@ -21,9 +21,11 @@ func (s *Scheduler) After(id string,d time.Duration,fn func()){
 	var t *time.Timer
 	t=time.AfterFunc(d,func(){
 		s.mu.Lock()
-		if e,ok:=s.timers[id];ok&&e.stop!=nil{delete(s.timers,id)}
+		e,ok:=s.timers[id]
+		current:=ok&&e.token==token
+		if current{delete(s.timers,id)}
 		s.mu.Unlock()
-		fn()
+		if current{fn()}
 	})
 	s.mu.Lock();s.timers[id]=timerEntry{stop:t.Stop,token:token};s.mu.Unlock()
 }

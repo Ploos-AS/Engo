@@ -38,9 +38,7 @@ func (h *HTTPClient) validateURL(u *url.URL)error{
 	if u.Scheme!="https"{return fmt.Errorf("HTTP capability requires https")}
 	host:=strings.ToLower(u.Hostname());if !h.allowed[host]{return fmt.Errorf("HTTP host %q is not allowed",host)}
 	ips,err:=net.LookupIP(host);if err!=nil{return fmt.Errorf("resolve HTTP host: %w",err)}
-	for _,ip:=range ips{if blockedIP(ip){return fmt.Errorf("HTTP host resolves to blocked address")}
-	return nil
-}
+	for _,ip:=range ips {\n\t\tif blockedIP(ip) { return fmt.Errorf("HTTP host resolves to blocked address") }\n\t}\n\treturn nil\n}
 func blockedIP(ip net.IP)bool{
 	return ip.IsLoopback()||ip.IsPrivate()||ip.IsUnspecified()||ip.IsMulticast()||ip.IsLinkLocalUnicast()||ip.IsLinkLocalMulticast()
 }

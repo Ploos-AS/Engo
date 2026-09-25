@@ -149,3 +149,13 @@ func TestPermissionPolicyRejectsDuplicatePermissionsPerAccount(t *testing.T) {
 		}
 	}
 }
+
+
+func TestPermissionEnvNormalizesCase(t *testing.T) {
+	t.Setenv("ENGO_ACCOUNT_PERMISSIONS", " Alice:Admin+Operator ")
+	cfg := FromEnv()
+	got := cfg.AccountPermissions["alice"]
+	if len(got) != 2 || got[0] != "admin" || got[1] != "operator" {
+		t.Fatalf("account permissions not normalized: %#v", cfg.AccountPermissions)
+	}
+}

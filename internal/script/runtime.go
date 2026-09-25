@@ -57,7 +57,7 @@ func (r *Runtime) registrationCall(src []byte,reg *bot.Registry)func(...tengo.Ob
 			name=strings.ToLower(strings.TrimSpace(name));if name==""{return nil,fmt.Errorf("handler name must not be empty")}
 			h:=func(ev bot.Event)error{if op=="command"{if perm:=r.commandPermissions[name];perm!=""&&!r.allowed(ev,perm){return nil}};return r.runHandler(src,id,ev)}
 			if op=="on"{reg.Events[name]=append(reg.Events[name],h)}else{reg.Commands[name]=h};return tengo.UndefinedValue,nil
-		case "say","notice","action":return tengo.UndefinedValue,nil
+		case "say","notice","action","active","allowed","timer_after","timer_every","timer_cancel","http_get","kv_get","kv_set","kv_delete":return tengo.UndefinedValue,nil
 		default:return nil,fmt.Errorf("unknown bot operation %q",op)}
 	}
 }

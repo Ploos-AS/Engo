@@ -2,11 +2,13 @@ package script
 
 import (
 	"fmt"
+	"context"
 	"io"
 	"net"
 	"net/http"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -21,7 +23,20 @@ func NewHTTPClient(hosts []string,timeout time.Duration,maxBody int64)*HTTPClien
 	allowed:=make(map[string]bool,len(hosts))
 	for _,h:=range hosts{h=strings.ToLower(strings.TrimSpace(h));if h!=""{allowed[h]=true}}
 	h:=&HTTPClient{allowed:allowed,maxBody:maxBody}
-	h.client=&http.Client{Timeout:timeout,CheckRedirect:func(req *http.Request,via []*http.Request)error{
+	transport:=http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext=func(ctx context.Context,network,address string)(net.Conn,error){
+		host,port,err:=net.SplitHostPort(address);if err!=nil{return nil,err}
+		ips,err:=net.DefaultResolver.LookupIP(ctx,"ip",host);if err!=nil{return nil,err}
+		var last error
+		dialer:=&net.Dialer{Timeout:timeout}
+		for _,ip:=range ips{
+			if blockedIP(ip){continue}
+			conn,err:=dialer.DialContext(ctx,network,net.JoinHostPort(ip.String(),strconv.Itoa(mustPort(port))))
+			if err==nil{return conn,nil};last=err
+		}
+		if last!=nil{return nil,last};return nil,fmt.Errorf("HTTP destination has no permitted addresses")
+	}
+	h.client=&http.Client{Timeout:timeout,Transport:transport,CheckRedirect:func(req *http.Request,via []*http.Request)error{
 		if len(via)>=5{return fmt.Errorf("too many redirects")}
 		return h.validateURL(req.URL)
 	}}
@@ -44,6 +59,7 @@ func (h *HTTPClient) validateURL(u *url.URL)error{
 	}
 	return nil
 }
+func mustPort(port string)int{n,_:=strconv.Atoi(port);return n}
 func blockedIP(ip net.IP)bool{
 	return ip.IsLoopback()||ip.IsPrivate()||ip.IsUnspecified()||ip.IsMulticast()||ip.IsLinkLocalUnicast()||ip.IsLinkLocalMulticast()
 }

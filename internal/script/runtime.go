@@ -69,17 +69,17 @@ func (r *Runtime) eventCall(active string)func(...tengo.Object)(tengo.Object,err
 		case "timer_after":
 			if len(args)!=3{return nil,tengo.ErrWrongNumArguments};duration,ok1:=tengo.ToString(args[1]);id,ok2:=tengo.ToString(args[2]);if !ok1||!ok2||strings.TrimSpace(id)==""{return nil,fmt.Errorf("timer_after requires duration and handler id strings")}
 			d,err:=parseTimerDuration(duration);if err!=nil{return nil,err}
-			timerID:=active+":"+id
+			timerID:=id
 			r.scheduler.After(timerID,d,func(){if err:=r.runHandler(r.currentSource(),id,bot.Event{Name:"timer"});err!=nil{fmt.Printf("Engo timer %s: %v\n",id,err)}})
 			return tengo.UndefinedValue,nil
 		case "timer_every":
 			if len(args)!=3{return nil,tengo.ErrWrongNumArguments};duration,ok1:=tengo.ToString(args[1]);id,ok2:=tengo.ToString(args[2]);if !ok1||!ok2||strings.TrimSpace(id)==""{return nil,fmt.Errorf("timer_every requires duration and handler id strings")}
 			d,err:=parseTimerDuration(duration);if err!=nil{return nil,err}
-			timerID:=active+":"+id
+			timerID:=id
 			r.scheduler.Every(timerID,d,func(){if err:=r.runHandler(r.currentSource(),id,bot.Event{Name:"timer"});err!=nil{fmt.Printf("Engo timer %s: %v\n",id,err)}})
 			return tengo.UndefinedValue,nil
 		case "timer_cancel":
-			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};id,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("timer id must be string")};return tengo.FromInterface(r.scheduler.Cancel(active+":"+id))
+			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};id,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("timer id must be string")};return tengo.FromInterface(r.scheduler.Cancel(id))
 		case "http_get":
 			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};raw,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("http_get URL must be string")};if !r.http.Enabled(){return nil,fmt.Errorf("HTTP capability is disabled")};res,err:=r.http.Get(raw);if err!=nil{return nil,err};return tengo.FromInterface(res)
 		case "kv_get":

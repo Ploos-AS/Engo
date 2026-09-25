@@ -18,7 +18,13 @@ type HTTPClient struct {
 	lookupIP func(string)([]net.IP,error)
 }
 
-func NewHTTPClient(hosts []string,timeout time.Duration,maxBody int64)*HTTPClient{
+func NewHTTPClient(hosts []string, timeout time.Duration, maxBody int64) *HTTPClient {
+	if timeout <= 0 {
+		timeout = 10 * time.Second
+	}
+	if maxBody <= 0 {
+		maxBody = 256 * 1024
+	}
 	allowed:=make(map[string]bool,len(hosts))
 	for _,h:=range hosts{h=strings.ToLower(strings.TrimSpace(h));if h!=""{allowed[h]=true}}
 	h:=&HTTPClient{allowed:allowed,maxBody:maxBody,lookupIP:net.LookupIP}

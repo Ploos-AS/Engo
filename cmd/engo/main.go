@@ -68,7 +68,9 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		return err
 	}
 	defer client.Close()
+	defer pbstate.SetActions(nil,nil)
 	pbstate.SetConnected(true)
+	pbstate.SetActions(client.Join, client.Part)
 	b := bot.New(client)
 	var reloadScripts func() error
 	if cfg.ScriptsDir != "" {

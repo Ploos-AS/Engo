@@ -1,7 +1,8 @@
 package script
 
 import (
-	"fmt"\n\t"sync/atomic"
+	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -9,7 +10,7 @@ import (
 func TestSchedulerAfter(t *testing.T){
 	s:=NewScheduler();done:=make(chan struct{},1)
 	s.After("x",time.Second,func(){done<-struct{}{}})
-	select{case<-done:case<-time.After(time.Second):t.Fatal("timer did not fire")}
+	select{case<-done:case<-time.After(2*time.Second):t.Fatal("timer did not fire")}
 }
 func TestSchedulerCancel(t *testing.T){
 	s:=NewScheduler();var fired atomic.Bool
@@ -36,7 +37,7 @@ func TestSchedulerReplacingTimerStopsOld(t *testing.T){
 	s:=NewScheduler();var old atomic.Bool;done:=make(chan struct{},1)
 	s.After("same",time.Second,func(){old.Store(true)})
 	s.After("same",time.Second,func(){done<-struct{}{}})
-	select{case<-done:case<-time.After(time.Second):t.Fatal("replacement timer did not fire")}
+	select{case<-done:case<-time.After(2*time.Second):t.Fatal("replacement timer did not fire")}
 	time.Sleep(1100*time.Millisecond)
 	if old.Load(){t.Fatal("replaced timer fired")}
 }

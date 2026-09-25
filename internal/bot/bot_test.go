@@ -153,3 +153,20 @@ func TestAccountTagWithoutUserhostIsNotVerified(t *testing.T){
  if got.Account!=""{t.Fatalf("account-tag without userhost exposed account %q",got.Account)}
  if got.AccountVerified{t.Fatal("account-tag without userhost was marked verified")}
 }
+
+
+func TestAccountEventWithoutUserhostIsNotVerified(t *testing.T){
+ b:=New(&testSender{});var got Event
+ b.On("account",func(ev Event)error{got=ev;return nil})
+ if err:=b.Handle(irc.ParseMessage(":alice ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+ if got.Account!=""{t.Fatalf("ACCOUNT without userhost exposed account %q",got.Account)}
+ if got.AccountVerified{t.Fatal("ACCOUNT without userhost was marked verified")}
+}
+
+func TestExtendedJoinWithoutUserhostIsNotVerified(t *testing.T){
+ b:=New(&testSender{});var got Event
+ b.On("join",func(ev Event)error{got=ev;return nil})
+ if err:=b.Handle(irc.ParseMessage(":alice JOIN #engo alice-account :Alice Example"));err!=nil{t.Fatal(err)}
+ if got.Account!=""{t.Fatalf("extended JOIN without userhost exposed account %q",got.Account)}
+ if got.AccountVerified{t.Fatal("extended JOIN without userhost was marked verified")}
+}

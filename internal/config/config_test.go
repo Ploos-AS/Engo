@@ -112,3 +112,11 @@ func TestPermissionPolicyRejectsDuplicateAccounts(t *testing.T){
 func TestCommandPolicyRejectsDuplicateCommands(t *testing.T){
 	for _,raw:=range []string{"reload:admin,reload:operator","kick:operator,kick:admin"}{if err:=validateCommandPermissions(raw);err==nil{t.Fatalf("expected duplicate command rejection for %q",raw)}}
 }
+
+
+func TestCommandPermissionReferencesMustBeDeclared(t *testing.T){
+	accounts:=map[string][]string{"alice":{"admin","operator"}}
+	if err:=validatePermissionReferences(accounts,map[string]string{"reload":"admin","kick":"operator"});err!=nil{t.Fatalf("declared permission rejected: %v",err)}
+	if err:=validatePermissionReferences(accounts,map[string]string{"reload":"admn"});err==nil{t.Fatal("expected undeclared permission rejection")}
+	if err:=validatePermissionReferences(nil,map[string]string{"reload":"admin"});err==nil{t.Fatal("expected permission rejection without account grants")}
+}

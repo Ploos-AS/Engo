@@ -67,3 +67,11 @@ func TestValidateIRCCapabilities(t *testing.T){
 		if err:=validateIRCCapability(capability);err==nil{t.Fatalf("expected %s to be rejected",capability)}
 	}
 }
+
+func TestAccountPermissionsEnvAndValidation(t *testing.T){
+	t.Setenv("ENGO_ACCOUNT_PERMISSIONS","alice:admin+operator,bob:operator")
+	cfg:=FromEnv()
+	if len(cfg.AccountPermissions["alice"])!=2||cfg.AccountPermissions["alice"][0]!="admin"||cfg.AccountPermissions["alice"][1]!="operator"{t.Fatalf("unexpected alice permissions: %#v",cfg.AccountPermissions)}
+	if err:=validatePermissions(cfg.AccountPermissionsRaw);err!=nil{t.Fatalf("valid permissions rejected: %v",err)}
+	for _,raw:=range []string{"alice","alice:"," :admin","alice:admin+"}{if err:=validatePermissions(raw);err==nil{t.Fatalf("expected invalid permissions for %q",raw)}}
+}

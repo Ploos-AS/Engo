@@ -29,6 +29,8 @@ type Config struct {
 	IRCCapabilities []string
 	AccountPermissions map[string][]string
 	AccountPermissionsRaw string
+	CommandPermissions map[string]string
+	CommandPermissionsRaw string
 	ReconnectMin time.Duration
 	ReconnectMax time.Duration
 }
@@ -55,6 +57,8 @@ func FromEnv() Config {
 		IRCCapabilities: csvEnv("ENGO_IRC_CAPABILITIES"),
 		AccountPermissions: permissionEnv("ENGO_ACCOUNT_PERMISSIONS"),
 		AccountPermissionsRaw: os.Getenv("ENGO_ACCOUNT_PERMISSIONS"),
+		CommandPermissions: commandPermissionEnv("ENGO_COMMAND_PERMISSIONS"),
+		CommandPermissionsRaw: os.Getenv("ENGO_COMMAND_PERMISSIONS"),
 		ReconnectMin: durationEnv("ENGO_RECONNECT_MIN",2*time.Second),
 		ReconnectMax: durationEnv("ENGO_RECONNECT_MAX",2*time.Minute),
 	}
@@ -63,6 +67,7 @@ func FromEnv() Config {
 func (c Config) Validate() error {
 	if err:=validateCapabilities(c.ScriptCapabilitiesRaw);err!=nil{return err}
 	if err:=validatePermissions(c.AccountPermissionsRaw);err!=nil{return err}
+	if err:=validateCommandPermissions(c.CommandPermissionsRaw);err!=nil{return err}
 	if c.ScriptMaxAllocs <= 0 { return fmt.Errorf("ENGO_SCRIPT_MAX_ALLOCS must be positive") }
 	if c.HTTPTimeout<=0 || c.HTTPMaxBody<=0 { return fmt.Errorf("invalid HTTP capability limits") }
 	if c.Server=="" { return nil }
@@ -135,3 +140,6 @@ func validatePermissions(raw string)error{
 	for _,entry:=range strings.Split(raw,","){parts:=strings.SplitN(strings.TrimSpace(entry),":",2);if len(parts)!=2||strings.TrimSpace(parts[0])==""||strings.TrimSpace(parts[1])==""{return fmt.Errorf("invalid ENGO_ACCOUNT_PERMISSIONS entry %q",entry)};for _,p:=range strings.Split(parts[1],"+"){if strings.TrimSpace(p)==""{return fmt.Errorf("empty permission in ENGO_ACCOUNT_PERMISSIONS entry %q",entry)}}}
 	return nil
 }
+
+func commandPermissionEnv(key string)map[string]string{out:=make(map[string]string);for _,entry:=range csvEnv(key){parts:=strings.SplitN(entry,":",2);if len(parts)==2{out[strings.ToLower(strings.TrimSpace(parts[0]))]=strings.ToLower(strings.TrimSpace(parts[1]))}};return out}
+func validateCommandPermissions(raw string)error{raw=strings.TrimSpace(raw);if raw==""{return nil};for _,entry:=range strings.Split(raw,","){parts:=strings.SplitN(strings.TrimSpace(entry),":",2);if len(parts)!=2||strings.TrimSpace(parts[0])==""||strings.TrimSpace(parts[1])==""||strings.Contains(parts[1],"+"){return fmt.Errorf("invalid ENGO_COMMAND_PERMISSIONS entry %q",entry)}};return nil}

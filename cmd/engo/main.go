@@ -32,7 +32,7 @@ func runIRC(ctx context.Context,cfg config.Config)error{
 	b:=bot.New(client)
 	var reloadScripts func()error
 	if cfg.ScriptsDir!=""{
-		mgr:=script.NewManagerLimited(cfg.ScriptsDir,b,cfg.ScriptMaxAllocs)
+		mgr:=script.NewManagerWithState(cfg.ScriptsDir,b,cfg.ScriptMaxAllocs,cfg.StateDir)
 		if err:=mgr.ReloadAll();err!=nil{return err}
 		reloadScripts=mgr.ReloadAll
 	}else{

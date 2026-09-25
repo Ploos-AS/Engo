@@ -21,6 +21,7 @@ type Manager struct {
 	httpTimeout time.Duration
 	httpMaxBody int64
 	mu sync.RWMutex
+	reloadMu sync.Mutex
 	runtimes map[string]*Runtime
 	disabled map[string]bool
 }
@@ -35,6 +36,7 @@ func NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*
 }
 
 func (m *Manager) ReloadAll() error {
+	m.reloadMu.Lock();defer m.reloadMu.Unlock()
 	entries,err:=os.ReadDir(m.dir); if err!=nil{return fmt.Errorf("read scripts directory: %w",err)}
 	var paths []string
 	for _,e:=range entries{
@@ -47,6 +49,7 @@ func (m *Manager) ReloadAll() error {
 }
 
 func (m *Manager) Enable(name string) error {
+	m.reloadMu.Lock();defer m.reloadMu.Unlock()
 	name,err:=cleanName(name); if err!=nil{return err}
 	path:=filepath.Join(m.dir,name)
 	if _,err:=os.Stat(path);err!=nil{return err}
@@ -59,6 +62,7 @@ func (m *Manager) Enable(name string) error {
 }
 
 func (m *Manager) Disable(name string) error {
+	m.reloadMu.Lock();defer m.reloadMu.Unlock()
 	name,err:=cleanName(name);if err!=nil{return err}
 	m.mu.Lock();m.disabled[name]=true;m.mu.Unlock()
 	if err:=m.reloadCurrent();err!=nil{
@@ -69,6 +73,7 @@ func (m *Manager) Disable(name string) error {
 }
 
 func (m *Manager) Reload(name string) error {
+	m.reloadMu.Lock();defer m.reloadMu.Unlock()
 	name,err:=cleanName(name);if err!=nil{return err}
 	if m.isDisabled(name){return fmt.Errorf("%s is disabled",name)}
 	return m.reloadCurrent()

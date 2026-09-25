@@ -22,7 +22,7 @@ func (s *Store) Get(key string)(string,bool,error){
 	s.mu.Lock();defer s.mu.Unlock();m,err:=s.read();if err!=nil{return "",false,err};v,ok:=m[key];return v,ok,nil
 }
 func (s *Store) Set(key,value string)error{
-	if err:=validKey(key);err!=nil{return err};s.mu.Lock();defer s.mu.Unlock();m,err:=s.read();if err!=nil{return err};m[key]=value;return s.write(m)
+	if err:=validKey(key);err!=nil{return err};if len(value)>65536{return fmt.Errorf("KV value too large")};s.mu.Lock();defer s.mu.Unlock();m,err:=s.read();if err!=nil{return err};m[key]=value;return s.write(m)
 }
 func (s *Store) Delete(key string)error{
 	if err:=validKey(key);err!=nil{return err};s.mu.Lock();defer s.mu.Unlock();m,err:=s.read();if err!=nil{return err};delete(m,key);return s.write(m)

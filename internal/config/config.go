@@ -144,7 +144,7 @@ func permissionEnv(key string)map[string][]string{return capabilityEnv(key)}
 func validatePermissions(raw string)error{
 	raw=strings.TrimSpace(raw);if raw==""{return nil}
 	seen:=make(map[string]bool)
-	for _,entry:=range strings.Split(raw,","){parts:=strings.SplitN(strings.TrimSpace(entry),":",2);if len(parts)!=2||strings.TrimSpace(parts[0])==""||strings.TrimSpace(parts[1])==""{return fmt.Errorf("invalid ENGO_ACCOUNT_PERMISSIONS entry %q",entry)};account:=strings.ToLower(strings.TrimSpace(parts[0]));if err:=validateAccountName(account);err!=nil{return err};if seen[account]{return fmt.Errorf("duplicate account in ENGO_ACCOUNT_PERMISSIONS: %q",account)};seen[account]=true;for _,p:=range strings.Split(parts[1],"+"){p=strings.TrimSpace(p);if p==""{return fmt.Errorf("empty permission in ENGO_ACCOUNT_PERMISSIONS entry %q",entry)};if err:=validatePermissionName(p);err!=nil{return err}}}
+	for _,entry:=range strings.Split(raw,","){parts:=strings.SplitN(strings.TrimSpace(entry),":",2);if len(parts)!=2||strings.TrimSpace(parts[0])==""||strings.TrimSpace(parts[1])==""{return fmt.Errorf("invalid ENGO_ACCOUNT_PERMISSIONS entry %q",entry)};account:=strings.ToLower(strings.TrimSpace(parts[0]));if err:=validateAccountName(account);err!=nil{return err};if seen[account]{return fmt.Errorf("duplicate account in ENGO_ACCOUNT_PERMISSIONS: %q",account)};seen[account]=true;permissionsSeen:=make(map[string]bool);for _,p:=range strings.Split(parts[1],"+"){p=strings.ToLower(strings.TrimSpace(p));if p==""{return fmt.Errorf("empty permission in ENGO_ACCOUNT_PERMISSIONS entry %q",entry)};if err:=validatePermissionName(p);err!=nil{return err};if permissionsSeen[p]{return fmt.Errorf("duplicate permission %q for account %q",p,account)};permissionsSeen[p]=true}}
 	return nil
 }
 

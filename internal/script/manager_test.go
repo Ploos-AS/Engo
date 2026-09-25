@@ -97,7 +97,7 @@ func TestManagerFailedReloadKeepsOldTimers(t *testing.T){
 	path:=filepath.Join(dir,"timer.tengo")
 	writeScript(t,path,`bot("command","start","start")
 if bot("active","start"){bot("timer_after","1s","fired")}
-if bot("active","fired"){bot("say",event["target"],"timer-fired")}`)
+if bot("active","fired"){bot("say","#x","timer-fired")}`)
 	s:=&captureSender{};b:=bot.New(s);m:=NewManager(dir,b)
 	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!start"))

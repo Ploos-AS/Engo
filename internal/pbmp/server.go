@@ -25,7 +25,7 @@ type State struct {
 func NewState(nick, network string, channels ...string) *State {
 	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool)}
 }
-func (s *State) SetModules(fn func() []map[string]any){s.mu.Lock();s.modules=fn;s.mu.Unlock()}
+func (s *State) SetModules(fn func() []map[string]any) { s.mu.Lock(); s.modules = fn; s.mu.Unlock() }
 func (s *State) SetActions(join func(string) error, part func(string, string) error) {
 	s.mu.Lock()
 	s.join = join
@@ -125,7 +125,14 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		}
 		r.Result = map[string]any{"implementation": "engo", "version": "0.1.0", "nick": s.Nick, "state": state}
 	case "modules.list":
-		s.mu.RLock(); fn:=s.modules; s.mu.RUnlock(); modules:=[]map[string]any{}; if fn!=nil { modules=fn() }; r.Result=map[string]any{"modules":modules}
+		s.mu.RLock()
+		fn := s.modules
+		s.mu.RUnlock()
+		modules := []map[string]any{}
+		if fn != nil {
+			modules = fn()
+		}
+		r.Result = map[string]any{"modules": modules}
 	case "channels.join", "channels.part":
 		network, name, _ := paramsString(q.Params, "network", "name", "reason")
 		if network != s.Network || !validPBMPChannel(name) {

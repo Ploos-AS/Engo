@@ -514,3 +514,16 @@ func TestRunFailsClosedWhenRequestedCapabilityRemovedAfterRegistration(t *testin
  if _,err:=fmt.Fprintln(serverConn,":server CAP nick DEL :account-tag");err!=nil{t.Fatal(err)}
  select{case err:=<-errCh:if err==nil||!strings.Contains(err.Error(),"server removed requested IRC capability \"account-tag\""){t.Fatalf("Run() error=%v",err)};case <-time.After(time.Second):t.Fatal("Run() did not fail after requested capability removal")}
 }
+
+
+func TestDialRejectsRegistrationLineBreaks(t *testing.T) {
+	for name, cfg := range map[string]Config{
+		"nick":      {Server: "127.0.0.1:1", Nick: "engo\r\nOPER"},
+		"user":      {Server: "127.0.0.1:1", User: "engo\n"},
+		"real name": {Server: "127.0.0.1:1", RealName: "Engo\r"},
+	} {
+		if _, err := Dial(cfg); err == nil || !strings.Contains(err.Error(), name+" contains IRC line breaks") {
+			t.Fatalf("%s: unexpected error: %v", name, err)
+		}
+	}
+}

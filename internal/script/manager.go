@@ -38,8 +38,8 @@ func NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*
 	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpTimeout:10*time.Second,httpMaxBody:262144,capabilities:make(map[string]Capabilities),runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
 }
 
-func (m *Manager) SetCommandPermissions(p map[string]string){m.mu.Lock();defer m.mu.Unlock();m.commandPermissions=p}
-func (m *Manager) SetPermissions(p map[string][]string){m.mu.Lock();defer m.mu.Unlock();m.permissions=p}
+func (m *Manager) SetCommandPermissions(p map[string]string){snapshot:=copyCommandPermissions(p);m.mu.Lock();defer m.mu.Unlock();m.commandPermissions=snapshot}
+func (m *Manager) SetPermissions(p map[string][]string){snapshot:=copyPermissions(p);m.mu.Lock();defer m.mu.Unlock();m.permissions=snapshot}
 func (m *Manager) SetScriptCapabilities(name string,c Capabilities) error {
 	name,err:=cleanName(name);if err!=nil{return err}
 	m.mu.Lock();defer m.mu.Unlock();m.capabilities[name]=c;return nil

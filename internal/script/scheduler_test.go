@@ -87,3 +87,16 @@ func TestSchedulerCancelEveryPreventsFurtherCallbacks(t *testing.T){
 	time.Sleep(60*time.Millisecond)
 	if count.Load()!=atCancel{t.Fatalf("callback ran after cancellation: %d -> %d",atCancel,count.Load())}
 }
+
+
+func TestSchedulerRejectsNonPositiveDurations(t *testing.T) {
+	s := NewScheduler()
+	for _, d := range []time.Duration{0, -time.Second} {
+		if err := s.After("after", d, func() {}); err == nil {
+			t.Fatalf("After(%v) expected duration error", d)
+		}
+		if err := s.Every("every", d, func() {}); err == nil {
+			t.Fatalf("Every(%v) expected duration error", d)
+		}
+	}
+}

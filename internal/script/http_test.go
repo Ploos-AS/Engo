@@ -64,3 +64,16 @@ func TestHTTPAcceptsAllowedHostResolvingPublic(t *testing.T){
 	u,_:=url.Parse("https://allowed.example/")
 	if err:=h.validateURL(u);err!=nil{t.Fatalf("unexpected validation error: %v",err)}
 }
+
+func TestHTTPRedirectRejectsUnlistedHost(t *testing.T){
+	h:=NewHTTPClient([]string{"allowed.example"},time.Second,1024)
+	req:=&http.Request{URL:&url.URL{Scheme:"https",Host:"other.example"}}
+	if err:=h.client.CheckRedirect(req,nil);err==nil{t.Fatal("expected redirect host rejection")}
+}
+func TestHTTPRedirectLimit(t *testing.T){
+	h:=NewHTTPClient([]string{"allowed.example"},time.Second,1024)
+	h.lookupIP=func(string)([]net.IP,error){return []net.IP{net.ParseIP("8.8.8.8")},nil}
+	req:=&http.Request{URL:&url.URL{Scheme:"https",Host:"allowed.example"}}
+	via:=make([]*http.Request,5)
+	if err:=h.client.CheckRedirect(req,via);err==nil{t.Fatal("expected redirect limit rejection")}
+}

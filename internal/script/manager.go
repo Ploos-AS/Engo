@@ -93,7 +93,10 @@ func (m *Manager) Reload(name string) error {
 	if m.isDisabled(name){return fmt.Errorf("%s is disabled",name)}
 	path:=filepath.Join(m.dir,name)
 	info,err:=os.Stat(path);if err!=nil{return err};if info.IsDir(){return fmt.Errorf("%s is not a script",name)}
-	// Registries are rebuilt atomically, so a named reload validates the target then\n\t// rebuilds the complete enabled script set. This preserves cross-script command/event\n\t// registrations and rollback semantics if any script fails validation.\n\treturn m.reloadCurrent()
+	// Registries are rebuilt atomically, so a named reload validates the target then
+	// rebuilds the complete enabled script set. This preserves cross-script command/event
+	// registrations and rollback semantics if any script fails validation.
+	return m.reloadCurrent()
 }
 
 func (m *Manager) reloadCurrent() error {

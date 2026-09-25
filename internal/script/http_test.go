@@ -51,3 +51,16 @@ func TestHTTPRejectsIPv4MappedPrivateAddress(t *testing.T){
 	if ip==nil{t.Fatal("failed to parse mapped IPv4 address")}
 	if !blockedIP(ip){t.Fatal("IPv4-mapped loopback address should be blocked")}
 }
+
+func TestHTTPRejectsAllowedHostResolvingPrivate(t *testing.T){
+	h:=NewHTTPClient([]string{"allowed.example"},time.Second,1024)
+	h.lookupIP=func(string)([]net.IP,error){return []net.IP{net.ParseIP("127.0.0.1")},nil}
+	u,_:=url.Parse("https://allowed.example/")
+	if err:=h.validateURL(u);err==nil{t.Fatal("expected private resolved address rejection")}
+}
+func TestHTTPAcceptsAllowedHostResolvingPublic(t *testing.T){
+	h:=NewHTTPClient([]string{"allowed.example"},time.Second,1024)
+	h.lookupIP=func(string)([]net.IP,error){return []net.IP{net.ParseIP("8.8.8.8")},nil}
+	u,_:=url.Parse("https://allowed.example/")
+	if err:=h.validateURL(u);err!=nil{t.Fatalf("unexpected validation error: %v",err)}
+}

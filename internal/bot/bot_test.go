@@ -52,3 +52,23 @@ func TestExtendedJoinLogoutClearsCachedIdentity(t *testing.T){
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if got!=""{t.Fatalf("JOIN * left stale account identity: %q",got)}
 }
+
+
+func TestIRCNickIdentityUsesRFC1459CaseMapping(t *testing.T){
+	b:=New(&testSender{})
+	var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":Alice[!u@example ACCOUNT account-one"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":aLICE{!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!="account-one"{t.Fatalf("RFC1459-equivalent nick lost account identity: %q",got)}
+}
+
+func TestQuitClearsRFC1459EquivalentNickIdentity(t *testing.T){
+	b:=New(&testSender{})
+	var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":Alice[!u@example ACCOUNT account-one"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":ALICE{!u@example QUIT :bye"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice[!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!=""{t.Fatalf("QUIT left stale RFC1459-equivalent identity: %q",got)}
+}

@@ -133,3 +133,10 @@ func TestIRCCapabilitiesRejectDuplicates(t *testing.T){
 	c:=Config{Server:"irc.example:6697",Nick:"engo",User:"engo",RealName:"Engo",TLS:true,ScriptMaxAllocs:1,HTTPTimeout:time.Second,HTTPMaxBody:1,ReconnectMin:time.Second,ReconnectMax:2*time.Second,IRCCapabilities:[]string{"account-tag","ACCOUNT-TAG"}}
 	if err:=c.Validate();err==nil{t.Fatal("expected duplicate IRC capability rejection")}
 }
+
+
+func TestIRCCapabilitiesEnvNormalizesCase(t *testing.T){
+	t.Setenv("ENGO_IRC_CAPABILITIES"," ACCOUNT-TAG,Server-Time ")
+	cfg:=FromEnv()
+	if len(cfg.IRCCapabilities)!=2||cfg.IRCCapabilities[0]!="account-tag"||cfg.IRCCapabilities[1]!="server-time"{t.Fatalf("IRC capabilities not normalized: %#v",cfg.IRCCapabilities)}
+}

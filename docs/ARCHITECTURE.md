@@ -40,7 +40,7 @@ Raw IRC writes, filesystem access and network access outside declared capabiliti
 - M1: robust IRC connection lifecycle, reconnect/backoff, TLS/SASL and configuration validation. **Implemented.**
 - M2: Tengo event and command API. **Implemented (initial API).**
 - M3: script lifecycle, isolation and hot reload. **Implemented:** transactional reload, multi-script management, handler failure containment, allocation limits and per-script enable/disable/reload lifecycle.
-- M4: persistence, timers and capability-scoped HTTP. **In progress:** namespaced persistent KV state and script-owned one-shot timers implemented.
+- M4: persistence, timers and capability-scoped HTTP. **In progress:** namespaced persistent KV state and script-owned one-shot and repeating timers implemented.
 - M5: IRCv3 and permissions/ACL model.
 - M6: production OCI/release pipeline and operational documentation.
 
@@ -63,6 +63,6 @@ Runtime errors from an event or command handler are contained at the bot boundar
 
 Persistent state is namespaced per script and exposed through `bot("kv_get", key)`, `bot("kv_set", key, value)` and `bot("kv_delete", key)`.
 
-Scripts can schedule one-shot callbacks with `bot("timer_after", duration, handler_id)` and cancel them with `bot("timer_cancel", handler_id)`. Timer durations use Go-style values such as `"5s"` and `"2m"`. Timers belong to their runtime and are cancelled when that runtime is replaced or disabled, preventing stale script code from firing after lifecycle changes.
+Scripts can schedule one-shot callbacks with `bot("timer_after", duration, handler_id)`, repeating callbacks with `bot("timer_every", duration, handler_id)`, and cancel either with `bot("timer_cancel", handler_id)`. Scheduling a timer with an existing ID replaces the previous timer. Timer durations use Go-style values such as `"5s"` and `"2m"`. Timers belong to their runtime and are cancelled when that runtime is replaced or disabled, preventing stale script code from firing after lifecycle changes.
 
 HTTP remains an explicit, disabled-by-default capability planned for the next M4 step.

@@ -140,3 +140,12 @@ func TestIRCCapabilitiesEnvNormalizesCase(t *testing.T){
 	cfg:=FromEnv()
 	if len(cfg.IRCCapabilities)!=2||cfg.IRCCapabilities[0]!="account-tag"||cfg.IRCCapabilities[1]!="server-time"{t.Fatalf("IRC capabilities not normalized: %#v",cfg.IRCCapabilities)}
 }
+
+
+func TestPermissionPolicyRejectsDuplicatePermissionsPerAccount(t *testing.T) {
+	for _, raw := range []string{"alice:admin+admin", "alice:Admin+admin"} {
+		if err := validatePermissions(raw); err == nil {
+			t.Fatalf("expected duplicate permission rejection for %q", raw)
+		}
+	}
+}

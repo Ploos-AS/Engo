@@ -484,3 +484,19 @@ func TestRunIgnoresCAPNEWAfterCAPEND(t *testing.T){
  if line,err:=r.ReadString('\n');err!=nil||strings.TrimSpace(line)!="PONG :probe"{t.Fatalf("PONG line=%q err=%v",line,err)}
  serverConn.Close();if err:=<-errCh;err!=io.EOF{t.Fatalf("Run() error=%v, want EOF",err)}
 }
+
+
+func TestRunIgnoresCAPDELForUnrequestedCapabilityAfterRegistration(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}();r:=bufio.NewReader(serverConn)
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * LS :account-tag server-time");err!=nil{t.Fatal(err)}
+ if line,err:=r.ReadString('\n');err!=nil||strings.TrimSpace(line)!="CAP REQ :account-tag"{t.Fatalf("CAP REQ line=%q err=%v",line,err)}
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :account-tag");err!=nil{t.Fatal(err)}
+ if line,err:=r.ReadString('\n');err!=nil||strings.TrimSpace(line)!="CAP END"{t.Fatalf("CAP END line=%q err=%v",line,err)}
+ if _,err:=fmt.Fprintln(serverConn,":server 001 nick :Welcome");err!=nil{t.Fatal(err)}
+ if _,err:=fmt.Fprintln(serverConn,":server CAP nick DEL :server-time");err!=nil{t.Fatal(err)}
+ if _,err:=fmt.Fprintln(serverConn,"PING :probe");err!=nil{t.Fatal(err)}
+ if line,err:=r.ReadString('\n');err!=nil||strings.TrimSpace(line)!="PONG :probe"{t.Fatalf("PONG line=%q err=%v",line,err)}
+ serverConn.Close();if err:=<-errCh;err!=io.EOF{t.Fatalf("Run() error=%v, want EOF",err)}
+}

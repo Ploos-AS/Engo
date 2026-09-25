@@ -33,6 +33,7 @@ type Config struct {
 	CommandPermissionsRaw string
 	ReconnectMin time.Duration
 	ReconnectMax time.Duration
+	PBMPSocket string
 }
 
 func FromEnv() Config {
@@ -61,6 +62,7 @@ func FromEnv() Config {
 		CommandPermissionsRaw: os.Getenv("ENGO_COMMAND_PERMISSIONS"),
 		ReconnectMin: durationEnv("ENGO_RECONNECT_MIN",2*time.Second),
 		ReconnectMax: durationEnv("ENGO_RECONNECT_MAX",2*time.Minute),
+		PBMPSocket: os.Getenv("ENGO_PBMP_SOCKET"),
 	}
 }
 

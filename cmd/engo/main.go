@@ -11,6 +11,7 @@ import (
 	"github.com/Ploos-AS/Engo/internal/bot"
 	"github.com/Ploos-AS/Engo/internal/config"
 	"github.com/Ploos-AS/Engo/internal/irc"
+	"github.com/Ploos-AS/Engo/internal/pbmp"
 	"github.com/Ploos-AS/Engo/internal/script"
 )
 
@@ -18,10 +19,12 @@ func main(){
 	cfg:=config.FromEnv();if err:=cfg.Validate();err!=nil{fatal(err)}
 	if cfg.Server==""{if err:=script.RunFile(cfg.Script);err!=nil{fatal(err)};return}
 	ctx,stop:=signal.NotifyContext(context.Background(),os.Interrupt,syscall.SIGTERM);defer stop()
+	pbstate:=pbmp.NewState(cfg.Nick,cfg.Server)
+	if cfg.PBMPSocket!=""{go func(){if err:=pbmp.Serve(cfg.PBMPSocket,pbstate);err!=nil{fmt.Fprintf(os.Stderr,"engo: PBMP server: %v\n",err)}}()}
 	delay:=cfg.ReconnectMin
 	for{
 		started:=time.Now()
-		err:=runIRC(ctx,cfg);if ctx.Err()!=nil{return}
+		err:=runIRC(ctx,cfg,pbstate);pbstate.SetConnected(false);if ctx.Err()!=nil{return}
 		if shouldResetBackoff(time.Since(started),cfg.ReconnectMax){delay=cfg.ReconnectMin}
 		fmt.Fprintf(os.Stderr,"engo: IRC session ended: %v; reconnecting in %s\n",err,delay)
 		timer:=time.NewTimer(delay);select{case<-ctx.Done():timer.Stop();return;case<-timer.C:}
@@ -29,8 +32,8 @@ func main(){
 	}
 }
 
-func runIRC(ctx context.Context,cfg config.Config)error{
-	client,err:=irc.Dial(irc.Config{Server:cfg.Server,Nick:cfg.Nick,User:cfg.User,RealName:cfg.RealName,TLS:cfg.TLS,SASLUsername:cfg.SASLUsername,SASLPassword:cfg.SASLPassword,Capabilities:cfg.IRCCapabilities});if err!=nil{return err};defer client.Close()
+func runIRC(ctx context.Context,cfg config.Config,pbstate *pbmp.State)error{
+	client,err:=irc.Dial(irc.Config{Server:cfg.Server,Nick:cfg.Nick,User:cfg.User,RealName:cfg.RealName,TLS:cfg.TLS,SASLUsername:cfg.SASLUsername,SASLPassword:cfg.SASLPassword,Capabilities:cfg.IRCCapabilities});if err!=nil{return err};defer client.Close();pbstate.SetConnected(true)
 	b:=bot.New(client)
 	var reloadScripts func()error
 	if cfg.ScriptsDir!=""{

@@ -2,7 +2,7 @@
 
 Engo is an IRC bot implemented in Go with [Tengo](https://github.com/d5/tengo) as its embedded scripting language.
 
-M0–M4 established the project foundation, robust IRC lifecycle, Tengo event/command API, transactional script lifecycle, persistence, timers and constrained HTTP access. M5 adds IRCv3 capability negotiation plus capability- and account-based authorization.
+M0–M4 established the project foundation, robust IRC lifecycle, Tengo event/command API, transactional script lifecycle, persistence, timers and constrained HTTP access. M5 adds IRCv3 capability negotiation plus capability- and account-based authorization. PBMP integration adds an optional local management interface shared with LuCa and BotWeb.
 
 ## Status
 
@@ -66,6 +66,7 @@ Configuration variables:
 | `ENGO_SASL_PASSWORD` | empty | SASL PLAIN password; requires username |
 | `ENGO_RECONNECT_MIN` | `2s` | Initial reconnect delay |
 | `ENGO_RECONNECT_MAX` | `2m` | Maximum reconnect delay |
+| `ENGO_PBMP_SOCKET` | empty | Optional local PBMP/1 Unix socket; e.g. `/tmp/engo.pbmp.sock` |
 
 ## OCI
 

@@ -20,6 +20,7 @@ type Manager struct {
 	httpHosts []string
 	httpTimeout time.Duration
 	httpMaxBody int64
+	capabilities map[string]Capabilities
 	mu sync.RWMutex
 	reloadMu sync.Mutex
 	runtimes map[string]*Runtime
@@ -29,10 +30,18 @@ type Manager struct {
 func NewManager(dir string,b *bot.Bot)*Manager{return NewManagerLimited(dir,b,100000)}
 func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{return NewManagerWithState(dir,b,maxAllocs,"")}
 func NewManagerWithCapabilities(dir string,b *bot.Bot,maxAllocs int64,stateDir string,httpHosts []string,httpTimeout time.Duration,httpMaxBody int64)*Manager{
-	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpHosts:httpHosts,httpTimeout:httpTimeout,httpMaxBody:httpMaxBody,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
+	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpHosts:httpHosts,httpTimeout:httpTimeout,httpMaxBody:httpMaxBody,capabilities:make(map[string]Capabilities),runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
 }
 func NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*Manager{
-	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpTimeout:10*time.Second,httpMaxBody:262144,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
+	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpTimeout:10*time.Second,httpMaxBody:262144,capabilities:make(map[string]Capabilities),runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
+}
+
+func (m *Manager) SetScriptCapabilities(name string,c Capabilities) error {
+	name,err:=cleanName(name);if err!=nil{return err}
+	m.mu.Lock();defer m.mu.Unlock();m.capabilities[name]=c;return nil
+}
+func (m *Manager) scriptCapabilities(path string)Capabilities{
+	m.mu.RLock();defer m.mu.RUnlock();return m.capabilities[filepath.Base(path)]
 }
 
 func (m *Manager) ReloadAll() error {
@@ -102,7 +111,7 @@ func (m *Manager) activate(paths []string) error {
 		rt:=NewLimited(path,m.bot,m.maxAllocs)
 		rt.SetStore(NewStore(m.stateDir,scriptNamespace(path)))
 		rt.SetHTTP(NewHTTPClient(m.httpHosts,m.httpTimeout,m.httpMaxBody))
-		rt.SetCapabilities(Capabilities{HTTP:len(m.httpHosts)>0})
+		rt.SetCapabilities(m.scriptCapabilities(path))
 		src,err:=os.ReadFile(path);if err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		rt.src=append([]byte(nil),src...);next[path]=rt

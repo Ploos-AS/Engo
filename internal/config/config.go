@@ -140,7 +140,19 @@ func validateIRCCapability(capability string)error{
 	}
 }
 
-func permissionEnv(key string)map[string][]string{return capabilityEnv(key)}
+func permissionEnv(key string)map[string][]string{
+	out:=make(map[string][]string)
+	for _,entry:=range csvEnv(key){
+		parts:=strings.SplitN(entry,":",2)
+		if len(parts)!=2{continue}
+		account:=strings.ToLower(strings.TrimSpace(parts[0]))
+		if account==""{continue}
+		for _,permission:=range strings.Split(parts[1],"+"){
+			if permission=strings.ToLower(strings.TrimSpace(permission));permission!=""{out[account]=append(out[account],permission)}
+		}
+	}
+	return out
+}
 func validatePermissions(raw string)error{
 	raw=strings.TrimSpace(raw);if raw==""{return nil}
 	seen:=make(map[string]bool)

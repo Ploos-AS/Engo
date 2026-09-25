@@ -25,7 +25,7 @@ Implemented:
 - Alpine OCI build
 - MIT license
 
-The richer bot/event API is intentionally deferred to later milestones.
+M2 provides the initial bot/event API. M3 adds transactional hot reload, multi-script management and per-execution Tengo allocation limits.
 
 ## Run the Tengo proof of concept
 
@@ -52,7 +52,7 @@ Configuration variables:
 | `ENGO_USER` | `engo` | IRC username |
 | `ENGO_REALNAME` | `Engo IRC bot` | IRC real name |
 | `ENGO_TLS` | `1` | TLS enabled unless set to `0` |
-| `ENGO_SCRIPT` | `scripts/examples/hello.tengo` | Tengo script run at startup |
+| `ENGO_SCRIPT` | `scripts/examples/hello.tengo` | Single Tengo script; used when `ENGO_SCRIPTS_DIR` is unset |\n| `ENGO_SCRIPTS_DIR` | empty | Directory of `.tengo` scripts loaded transactionally |\n| `ENGO_SCRIPT_MAX_ALLOCS` | `100000` | Maximum Tengo VM allocations per registration/event execution |
 | `ENGO_SASL_USERNAME` | empty | SASL PLAIN authentication identity; requires password |
 | `ENGO_SASL_PASSWORD` | empty | SASL PLAIN password; requires username |
 | `ENGO_RECONNECT_MIN` | `2s` | Initial reconnect delay |

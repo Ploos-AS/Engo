@@ -120,3 +120,10 @@ func TestCommandPermissionReferencesMustBeDeclared(t *testing.T){
 	if err:=validatePermissionReferences(accounts,map[string]string{"reload":"admn"});err==nil{t.Fatal("expected undeclared permission rejection")}
 	if err:=validatePermissionReferences(nil,map[string]string{"reload":"admin"});err==nil{t.Fatal("expected permission rejection without account grants")}
 }
+
+
+func TestScriptCapabilitiesRejectDuplicates(t *testing.T){
+	bad:=[]string{"weather.tengo:http,weather.tengo:http","weather.tengo:http+http"}
+	for _,raw:=range bad{if err:=validateCapabilities(raw);err==nil{t.Fatalf("expected duplicate capability policy rejection for %q",raw)}}
+	if err:=validateCapabilities("weather.tengo:http,alerts.tengo:http");err!=nil{t.Fatalf("distinct script grants rejected: %v",err)}
+}

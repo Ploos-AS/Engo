@@ -53,6 +53,7 @@ func (h *HTTPClient) validateURL(u *url.URL)error{
 	if u.Scheme!="https"{return fmt.Errorf("HTTP capability requires https")};if u.User!=nil{return fmt.Errorf("HTTP URL userinfo is not allowed")};if p:=u.Port();p!=""&&p!="443"{return fmt.Errorf("HTTP capability only allows port 443")}
 	host:=strings.ToLower(u.Hostname());if !h.allowed[host]{return fmt.Errorf("HTTP host %q is not allowed",host)}
 	ips,err:=h.lookupIP(host);if err!=nil{return fmt.Errorf("resolve HTTP host: %w",err)}
+	if len(ips)==0{return fmt.Errorf("HTTP host resolves to no addresses")}
 	for _,ip:=range ips {
 		if blockedIP(ip) { return fmt.Errorf("HTTP host resolves to blocked address") }
 	}

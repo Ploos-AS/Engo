@@ -1,6 +1,9 @@
 package irc
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestCapabilityListed(t *testing.T) {
 	line := ":irc.example CAP engo LS :multi-prefix sasl=PLAIN account-notify"
@@ -25,4 +28,19 @@ func TestMultilineCapabilityCollection(t *testing.T){
 	caps:=append(capabilityNames(":irc.example CAP engo LS * :multi-prefix account-notify"),capabilityNames(":irc.example CAP engo LS :sasl=PLAIN echo-message")...)
 	if !containsCapability(caps,"sasl"){t.Fatal("expected SASL from final CAP LS line")}
 	if !containsCapability(caps,"multi-prefix"){t.Fatal("expected capability from continuation line")}
+}
+
+func TestAuthenticateChunks(t *testing.T){
+	cases:=[]struct{name string;n int;want int;terminal bool}{
+		{"short",10,1,false},
+		{"exact",400,2,true},
+		{"long",401,2,false},
+		{"double-exact",800,3,true},
+	}
+	for _,tc:=range cases{t.Run(tc.name,func(t *testing.T){
+		chunks:=authenticateChunks(strings.Repeat("x",tc.n))
+		if len(chunks)!=tc.want{t.Fatalf("got %d chunks, want %d",len(chunks),tc.want)}
+		for i,ch:=range chunks{if ch!="+"&&len(ch)>400{t.Fatalf("chunk %d too long: %d",i,len(ch))}}
+		if (chunks[len(chunks)-1]=="+")!=tc.terminal{t.Fatalf("terminal marker mismatch: %#v",chunks)}
+	})}
 }

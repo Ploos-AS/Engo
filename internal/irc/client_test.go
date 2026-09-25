@@ -367,3 +367,18 @@ func TestRunRejectsCAPDELBeforeRequest(t *testing.T){
  case <-time.After(time.Second):t.Fatal("Run() did not reject CAP DEL before CAP REQ")
  }
 }
+
+
+func TestRunRejectsCAPRepliesAfterEnd(t *testing.T){
+ for _,reply:=range []string{"ACK","NAK"}{t.Run(reply,func(t *testing.T){
+  clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+  c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+  errCh:=make(chan error,1);go func(){errCh<-c.Run()}();r:=bufio.NewReader(serverConn)
+  if _,err:=fmt.Fprintln(serverConn,":server CAP * LS :account-tag");err!=nil{t.Fatal(err)}
+  if _,err:=r.ReadString('\n');err!=nil{t.Fatal(err)}
+  if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :account-tag");err!=nil{t.Fatal(err)}
+  line,err:=r.ReadString('\n');if err!=nil{t.Fatal(err)};if strings.TrimSpace(line)!="CAP END"{t.Fatalf("unexpected CAP completion %q",line)}
+  if _,err:=fmt.Fprintf(serverConn,":server CAP * %s :account-tag\\r\\n",reply);err!=nil{t.Fatal(err)}
+  select{case err:=<-errCh:if err==nil||!strings.Contains(err.Error(),"unexpected CAP "+reply+" after CAP END"){t.Fatalf("Run() error=%v",err)};case <-time.After(time.Second):t.Fatalf("Run() did not reject CAP %s after CAP END",reply)}
+ })}
+}

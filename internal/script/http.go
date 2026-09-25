@@ -21,7 +21,7 @@ func NewHTTPClient(hosts []string,timeout time.Duration,maxBody int64)*HTTPClien
 	allowed:=make(map[string]bool,len(hosts))
 	for _,h:=range hosts{h=strings.ToLower(strings.TrimSpace(h));if h!=""{allowed[h]=true}}
 	h:=&HTTPClient{allowed:allowed,maxBody:maxBody}
-	transport:=http.DefaultTransport.(*http.Transport).Clone()
+	transport:=http.DefaultTransport.(*http.Transport).Clone();transport.Proxy=nil
 	transport.DialContext=func(ctx context.Context,network,address string)(net.Conn,error){
 		host,port,err:=net.SplitHostPort(address);if err!=nil{return nil,err}
 		ips,err:=net.DefaultResolver.LookupIP(ctx,"ip",host);if err!=nil{return nil,err}
@@ -49,7 +49,7 @@ func (h *HTTPClient) Get(raw string)(map[string]interface{},error){
 	return map[string]interface{}{"status":int64(resp.StatusCode),"body":string(body),"content_type":resp.Header.Get("Content-Type")},nil
 }
 func (h *HTTPClient) validateURL(u *url.URL)error{
-	if u.Scheme!="https"{return fmt.Errorf("HTTP capability requires https")}
+	if u.Scheme!="https"{return fmt.Errorf("HTTP capability requires https")};if u.User!=nil{return fmt.Errorf("HTTP URL userinfo is not allowed")};if p:=u.Port();p!=""&&p!="443"{return fmt.Errorf("HTTP capability only allows port 443")}
 	host:=strings.ToLower(u.Hostname());if !h.allowed[host]{return fmt.Errorf("HTTP host %q is not allowed",host)}
 	ips,err:=net.LookupIP(host);if err!=nil{return fmt.Errorf("resolve HTTP host: %w",err)}
 	for _,ip:=range ips {

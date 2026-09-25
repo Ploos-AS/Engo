@@ -54,7 +54,7 @@ func FromEnv() Config {
 		SASLUsername: os.Getenv("ENGO_SASL_USERNAME"),
 		SASLPassword: os.Getenv("ENGO_SASL_PASSWORD"),
 		AllowInsecureSASL: getenv("ENGO_ALLOW_INSECURE_SASL","0")=="1",
-		IRCCapabilities: csvEnv("ENGO_IRC_CAPABILITIES"),
+		IRCCapabilities: lowerCSVEnv("ENGO_IRC_CAPABILITIES"),
 		AccountPermissions: permissionEnv("ENGO_ACCOUNT_PERMISSIONS"),
 		AccountPermissionsRaw: os.Getenv("ENGO_ACCOUNT_PERMISSIONS"),
 		CommandPermissions: commandPermissionEnv("ENGO_COMMAND_PERMISSIONS"),
@@ -95,6 +95,8 @@ func int64Env(key string,fallback int64) int64 {
 }
 
 func csvEnv(key string)[]string{v:=strings.TrimSpace(os.Getenv(key));if v==""{return nil};parts:=strings.Split(v,",");out:=parts[:0];for _,p:=range parts{if p=strings.TrimSpace(p);p!=""{out=append(out,p)}};return out}
+
+func lowerCSVEnv(key string)[]string{out:=csvEnv(key);for i:=range out{out[i]=strings.ToLower(out[i])};return out}
 
 func capabilityEnv(key string)map[string][]string{
 	out:=make(map[string][]string)

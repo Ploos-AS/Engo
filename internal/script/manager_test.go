@@ -251,3 +251,25 @@ func TestManagerReloadRejectsDirectoryNamedTengo(t *testing.T) {
 		t.Fatal("expected directory rejection")
 	}
 }
+
+
+func TestManagerNamedReloadRollsBackWholeRegistry(t *testing.T) {
+	dir := t.TempDir()
+	one := filepath.Join(dir, "one.tengo")
+	two := filepath.Join(dir, "two.tengo")
+	writeScript(t, one, `bot("command","one","one")
+if bot("active","one"){bot("say",event["target"],"old-one")}`)
+	writeScript(t, two, `bot("command","two","two")
+if bot("active","two"){bot("say",event["target"],"old-two")}`)
+	s := &captureSender{}
+	b := bot.New(s)
+	m := NewManager(dir, b)
+	if err := m.ReloadAll(); err != nil { t.Fatal(err) }
+	writeScript(t, one, `bot("command","one","one")
+if bot("active","one"){bot("say",event["target"],"new-one")}`)
+	if err := os.WriteFile(two, []byte("{{ invalid"), 0o600); err != nil { t.Fatal(err) }
+	if err := m.Reload("one.tengo"); err == nil { t.Fatal("expected atomic named reload failure") }
+	s.reset()
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!one"))
+	if _, text := s.snapshot(); text != "old-one" { t.Fatalf("old registry not preserved: %q", text) }
+}

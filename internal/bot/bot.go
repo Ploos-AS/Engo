@@ -105,6 +105,10 @@ func (b *Bot) Handle(m irc.Message) error {
 		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,nickKey);b.accounts[ircNickKey(newNick,b.caseMapping)]=accountIdentity{account:account,userhost:currentUserhost}}
 	case "QUIT":
 		delete(b.accounts,nickKey)
+	case "KICK":
+		// A KICK describes another nick leaving a channel. Account identity is
+		// network-scoped and may still be valid in other shared channels, so do
+		// not revoke it here; provenance is rechecked on every later message.
 	}
 	b.mu.Unlock()
 	ev := eventFromMessage(m)

@@ -14,14 +14,18 @@ import (
 type Manager struct {
 	dir string
 	bot *bot.Bot
-	maxAllocs int64\n\tstateDir string
+	maxAllocs int64
+	stateDir string
 	mu sync.RWMutex
 	runtimes map[string]*Runtime
 	disabled map[string]bool
 }
 
 func NewManager(dir string,b *bot.Bot)*Manager{return NewManagerLimited(dir,b,100000)}
-func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{return NewManagerWithState(dir,b,maxAllocs,"")}\nfunc NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*Manager{\n\treturn &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}\n}
+func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{return NewManagerWithState(dir,b,maxAllocs,"")}
+func NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*Manager{
+	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
+}
 
 func (m *Manager) ReloadAll() error {
 	entries,err:=os.ReadDir(m.dir); if err!=nil{return fmt.Errorf("read scripts directory: %w",err)}
@@ -82,7 +86,8 @@ func (m *Manager) reloadCurrent() error {
 func (m *Manager) activate(paths []string) error {
 	reg:=bot.NewRegistry();next:=make(map[string]*Runtime,len(paths))
 	for _,path:=range paths{
-		rt:=NewLimited(path,m.bot,m.maxAllocs)\n\t\trt.SetStore(NewStore(m.stateDir,scriptNamespace(path)))
+		rt:=NewLimited(path,m.bot,m.maxAllocs)
+		rt.SetStore(NewStore(m.stateDir,scriptNamespace(path)))
 		src,err:=os.ReadFile(path);if err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		rt.src=append([]byte(nil),src...);next[path]=rt

@@ -12,10 +12,14 @@ import (
 type Store struct {
 	root string
 	namespace string
-	mu sync.Mutex
+	mu *sync.Mutex
 }
 
-var storeLocks sync.Map\n\nfunc NewStore(root,namespace string)*Store{\n\tkey:=filepath.Join(root,namespace);v,_:=storeLocks.LoadOrStore(key,&sync.Mutex{});return &Store{root:root,namespace:namespace,mu:v.(*sync.Mutex)}\n}
+var storeLocks sync.Map
+
+func NewStore(root,namespace string)*Store{
+	key:=filepath.Join(root,namespace);v,_:=storeLocks.LoadOrStore(key,&sync.Mutex{});return &Store{root:root,namespace:namespace,mu:v.(*sync.Mutex)}
+}
 
 func (s *Store) Get(key string)(string,bool,error){
 	if err:=validKey(key);err!=nil{return "",false,err}

@@ -58,5 +58,6 @@ func (h *HTTPClient) validateURL(u *url.URL)error{
 	return nil
 }
 func blockedIP(ip net.IP)bool{
+	if v4:=ip.To4();v4!=nil{ip=v4}
 	return ip.IsLoopback()||ip.IsPrivate()||ip.IsUnspecified()||ip.IsMulticast()||ip.IsLinkLocalUnicast()||ip.IsLinkLocalMulticast()
 }

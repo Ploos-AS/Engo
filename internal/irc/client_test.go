@@ -67,3 +67,18 @@ func TestRequestedCapabilitiesIncludeSASLOnce(t *testing.T){
 	for _,capability:=range caps{if capability=="sasl"{count++}}
 	if count!=1{t.Fatalf("SASL capability count = %d, want 1",count)}
 }
+
+
+func TestNonSASLCapabilityACKEndsNegotiation(t *testing.T){
+	clientConn,serverConn:=net.Pipe()
+	defer clientConn.Close();defer serverConn.Close()
+	c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+	done:=make(chan error,1);go func(){done<-c.Run()}()
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo LS :account-tag\r\n"));err!=nil{t.Fatal(err)}
+	buf:=make([]byte,128);n,err:=serverConn.Read(buf);if err!=nil{t.Fatal(err)}
+	if !strings.Contains(string(buf[:n]),"CAP REQ :account-tag"){t.Fatalf("missing CAP REQ: %q",buf[:n])}
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo ACK :account-tag\r\n"));err!=nil{t.Fatal(err)}
+	n,err=serverConn.Read(buf);if err!=nil{t.Fatal(err)}
+	if !strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("non-SASL ACK did not end negotiation: %q",buf[:n])}
+	_ = clientConn.Close();<-done
+}

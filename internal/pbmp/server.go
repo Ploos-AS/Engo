@@ -30,7 +30,8 @@ type request struct {
 }
 type response struct {
 	PBMP     int    `json:"pbmp"`
-	Type, ID string `json:"type","id"`
+	Type string `json:"type"`
+	ID string `json:"id"`
 	OK       bool   `json:"ok"`
 	Result   any    `json:"result,omitempty"`
 	Error    any    `json:"error,omitempty"`

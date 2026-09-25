@@ -266,3 +266,24 @@ func TestNickChangeKeepsProtectedCommandForSameUserhost(t *testing.T){
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)};if err:=b.Handle(irc.ParseMessage(":alice!u@example NICK :alice2"));err!=nil{t.Fatal(err)};if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
 	if _,text:=sender.snapshot();text!="ran"{t.Fatalf("same-userhost nick change lost authorization: %q",text)}
 }
+
+
+func TestAccountPermissionRequiresVerifiedProvenance(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "provenance.tengo")
+	writeScript(t, path, "bot("command","reload","reload")\nif bot("active","reload") { bot("say",event["target"],"ran") }")
+	sender := &captureSender{}
+	b := bot.New(sender)
+	rt := New(path, b)
+	rt.SetPermissions(map[string][]string{"alice-account": {"admin"}})
+	rt.SetCommandPermissions(map[string]string{"reload": "admin"})
+	if err := rt.Load(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := b.Handle(irc.ParseMessage("alice PRIVMSG #engo :!reload")); err != nil {
+		t.Fatal(err)
+	}
+	if _, text := sender.snapshot(); text != "" {
+		t.Fatalf("unverified account was authorized: %q", text)
+	}
+}

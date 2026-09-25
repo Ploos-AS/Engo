@@ -59,3 +59,11 @@ func TestRegistrationTimeout(t *testing.T){
 	err:=c.Run()
 	if err==nil||!strings.Contains(err.Error(),"registration timed out"){t.Fatalf("expected registration timeout, got %v",err)}
 }
+
+func TestRequestedCapabilitiesIncludeSASLOnce(t *testing.T){
+	caps:=[]string{"multi-prefix","sasl"}
+	if !containsCapability(caps,"sasl"){t.Fatal("expected SASL capability")}
+	count:=0
+	for _,capability:=range caps{if capability=="sasl"{count++}}
+	if count!=1{t.Fatalf("SASL capability count = %d, want 1",count)}
+}

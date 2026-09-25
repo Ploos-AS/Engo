@@ -149,3 +149,15 @@ if bot("active","who") { bot("say",event["target"],event["account"]) }`)
 	if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if sender.text!=""{t.Fatalf("account after quit=%q",sender.text)}
 }
+
+func TestAccountPermissionsDefaultDeny(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"permissions.tengo")
+	writeScript(t,path,`bot("command","admin","admin")
+if bot("active","admin") { if bot("allowed","admin") { bot("say",event["target"],"yes") } else { bot("say",event["target"],"no") } }`)
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":bob!u@example PRIVMSG #engo :!admin"));err!=nil{t.Fatal(err)}
+	if sender.text!="no"{t.Fatalf("unauthenticated/default permission result=%q",sender.text)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!admin"));err!=nil{t.Fatal(err)}
+	if sender.text!="yes"{t.Fatalf("granted permission result=%q",sender.text)}
+}

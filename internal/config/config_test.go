@@ -127,3 +127,9 @@ func TestScriptCapabilitiesRejectDuplicates(t *testing.T){
 	for _,raw:=range bad{if err:=validateCapabilities(raw);err==nil{t.Fatalf("expected duplicate capability policy rejection for %q",raw)}}
 	if err:=validateCapabilities("weather.tengo:http,alerts.tengo:http");err!=nil{t.Fatalf("distinct script grants rejected: %v",err)}
 }
+
+
+func TestIRCCapabilitiesRejectDuplicates(t *testing.T){
+	c:=Config{Server:"irc.example:6697",Nick:"engo",User:"engo",RealName:"Engo",TLS:true,ScriptMaxAllocs:1,HTTPTimeout:time.Second,HTTPMaxBody:1,ReconnectMin:time.Second,ReconnectMax:2*time.Second,IRCCapabilities:[]string{"account-tag","ACCOUNT-TAG"}}
+	if err:=c.Validate();err==nil{t.Fatal("expected duplicate IRC capability rejection")}
+}

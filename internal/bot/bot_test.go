@@ -109,3 +109,21 @@ func TestRepeatedCaseMappingDoesNotClearIdentityCache(t *testing.T){
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if got!="alice-account"{t.Fatalf("unchanged CASEMAPPING cleared valid identity: %q",got)}
 }
+
+
+func TestNickReuseDifferentUserhostDoesNotInheritAccount(t *testing.T){
+	b:=New(&testSender{});var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":alice!old@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!new@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!=""{t.Fatalf("reused nick inherited stale account: %q",got)}
+}
+
+func TestNickChangePreservesAccountForSameUserhost(t *testing.T){
+	b:=New(&testSender{});var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example NICK :alice2"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!="alice-account"{t.Fatalf("nick change lost authenticated account: %q",got)}
+}

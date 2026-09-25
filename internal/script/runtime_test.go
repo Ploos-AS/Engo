@@ -90,3 +90,12 @@ if bot("active","fetch") { bot("http_get","http://example.com/") }`)
 	if strings.Contains(err.Error(),"not granted"){t.Fatalf("capability grant was not applied: %v",err)}
 	if !strings.Contains(err.Error(),"requires https"){t.Fatalf("expected HTTP policy rejection after capability grant, got: %v",err)}
 }
+
+func TestEventObjectExposesIRCv3Tags(t *testing.T){
+	ev:=bot.Event{Name:"message",Nick:"alice",Message:irc.ParseMessage("@time=2026-09-25T09:30:00.000Z;account=alice :alice!u@example PRIVMSG #engo :hello")}
+	obj:=eventObject(ev)
+	if obj["time"]!="2026-09-25T09:30:00.000Z"{t.Fatalf("unexpected time: %#v",obj["time"])}
+	if obj["account"]!="alice"{t.Fatalf("unexpected account: %#v",obj["account"])}
+	tags,ok:=obj["tags"].(map[string]interface{});if !ok{t.Fatalf("unexpected tags type: %T",obj["tags"])}
+	if tags["time"]!="2026-09-25T09:30:00.000Z"||tags["account"]!="alice"{t.Fatalf("unexpected tags: %#v",tags)}
+}

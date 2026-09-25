@@ -71,9 +71,9 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 	defer pbstate.SetActions(nil, nil)
 	pbstate.SetConnected(true)
 	pbstate.SetActions(client.Join, client.Part)
-	pbstate.SetModules(mgr.Modules)
 	b := bot.New(client)
 	var reloadScripts func() error
+	var moduleList func() []map[string]any
 	if cfg.ScriptsDir != "" {
 		mgr := script.NewManagerWithCapabilities(cfg.ScriptsDir, b, cfg.ScriptMaxAllocs, cfg.StateDir, cfg.HTTPAllow, cfg.HTTPTimeout, cfg.HTTPMaxBody)
 		mgr.SetPermissions(cfg.AccountPermissions)
@@ -91,6 +91,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 			return err
 		}
 		reloadScripts = mgr.ReloadAll
+		moduleList = mgr.Modules
 	} else {
 		rt := script.NewLimited(cfg.Script, b, cfg.ScriptMaxAllocs)
 		rt.SetStore(script.NewStore(cfg.StateDir, scriptNamespace(cfg.Script)))
@@ -106,7 +107,9 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 			return err
 		}
 		reloadScripts = rt.Reload
+		name:=filepathBase(cfg.Script); caps:=append([]string(nil),cfg.ScriptCapabilities[name]...); moduleList=func()[]map[string]any{return []map[string]any{{"id":name,"runtime":"tengo","state":"active","capabilities":caps}}}
 	}
+	pbstate.SetModules(moduleList)
 	client.OnMessage(func(m irc.Message) error {
 		pbstate.Observe(m.Command, m.Nick, m.Params, m.Trailing)
 		return b.Handle(m)

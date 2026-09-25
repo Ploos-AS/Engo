@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Ploos-AS/Engo/internal/bot"
 	"github.com/Ploos-AS/Engo/internal/config"
 	"github.com/Ploos-AS/Engo/internal/irc"
 	"github.com/Ploos-AS/Engo/internal/script"
@@ -19,10 +20,10 @@ func main() {
 		fatal(err)
 	}
 
-	if err := script.RunFile(cfg.Script); err != nil {
-		fatal(err)
-	}
 	if cfg.Server == "" {
+		if err := script.RunFile(cfg.Script); err != nil {
+			fatal(err)
+		}
 		return
 	}
 
@@ -66,6 +67,13 @@ func runIRC(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 	defer client.Close()
+
+	b := bot.New(client)
+	rt := script.New(cfg.Script, b)
+	if err := rt.Load(); err != nil {
+		return err
+	}
+	client.OnMessage(b.Handle)
 
 	done := make(chan error, 1)
 	go func() { done <- client.Run() }()

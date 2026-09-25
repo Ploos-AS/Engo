@@ -2,11 +2,11 @@
 
 Engo is an IRC bot implemented in Go with [Tengo](https://github.com/d5/tengo) as its embedded scripting language.
 
-M0 established the project foundation. M1 adds the first robust IRC connection lifecycle: configuration validation, TLS, SASL PLAIN, reconnect/backoff and graceful shutdown.
+M0–M4 established the project foundation, robust IRC lifecycle, Tengo event/command API, transactional script lifecycle, persistence, timers and constrained HTTP access. M5 adds IRCv3 capability negotiation plus capability- and account-based authorization.
 
 ## Status
 
-**M1 — IRC connection lifecycle**
+**M5 — IRCv3 and permissions (implementation in progress; CI qualification pending)**
 
 Implemented:
 
@@ -24,8 +24,15 @@ Implemented:
 - GitHub Actions CI
 - Alpine OCI build
 - MIT license
+- transactional multi-script hot reload with allocation limits
+- per-script persistent KV storage and timers
+- constrained HTTPS client with hostname allowlist and SSRF defenses
+- per-script capabilities (including explicit HTTP grants)
+- IRCv3 `account-tag`, `account-notify`, `extended-join` and `server-time` negotiation
+- account identity provenance tracking and fail-closed command permissions
+- optional standalone architecture; the future Engo Web control plane is not required to run Engo
 
-M2 provides the initial bot/event API. M3 adds transactional hot reload, multi-script management and per-execution Tengo allocation limits.
+CI includes normal tests, race-detector tests, vet, Go build and Alpine container build. A current green GitHub Actions run has not yet been independently verified.
 
 ## Run the Tengo proof of concept
 
@@ -52,7 +59,9 @@ Configuration variables:
 | `ENGO_USER` | `engo` | IRC username |
 | `ENGO_REALNAME` | `Engo IRC bot` | IRC real name |
 | `ENGO_TLS` | `1` | TLS enabled unless set to `0` |
-| `ENGO_SCRIPT` | `scripts/examples/hello.tengo` | Single Tengo script; used when `ENGO_SCRIPTS_DIR` is unset |\n| `ENGO_SCRIPTS_DIR` | empty | Directory of `.tengo` scripts loaded transactionally |\n| `ENGO_SCRIPT_MAX_ALLOCS` | `100000` | Maximum Tengo VM allocations per registration/event execution |
+| `ENGO_SCRIPT` | `scripts/examples/hello.tengo` | Single Tengo script; used when `ENGO_SCRIPTS_DIR` is unset |
+| `ENGO_SCRIPTS_DIR` | empty | Directory of `.tengo` scripts loaded transactionally |
+| `ENGO_SCRIPT_MAX_ALLOCS` | `100000` | Maximum Tengo VM allocations per registration/event execution |
 | `ENGO_SASL_USERNAME` | empty | SASL PLAIN authentication identity; requires password |
 | `ENGO_SASL_PASSWORD` | empty | SASL PLAIN password; requires username |
 | `ENGO_RECONNECT_MIN` | `2s` | Initial reconnect delay |

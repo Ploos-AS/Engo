@@ -219,3 +219,20 @@ func TestActionUsesCTCPFramingAndSanitizesText(t *testing.T){
 	if got!=want{t.Fatalf("Action frame=%q want %q",got,want)}
 	if strings.Contains(got,"\r\nPRIVMSG #other"){t.Fatal("Action allowed IRC line injection")}
 }
+
+
+func TestCAPDELSASLAfterAuthenticationDoesNotDisconnect(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
+	c:=&Client{conn:clientConn,cfg:Config{Nick:"engo",User:"engo",RealName:"Engo",SASLUsername:"engo",SASLPassword:"secret"},registrationTimeout:time.Second}
+	done:=make(chan error,1);go func(){done<-c.Run()}()
+	write:=func(line string){t.Helper();if _,err:=fmt.Fprintf(serverConn,"%s\r\n",line);err!=nil{t.Fatal(err)}}
+	read:=bufio.NewReader(serverConn)
+	write(":srv CAP engo LS :sasl");if line,err:=read.ReadString('\n');err!=nil||!strings.Contains(line,"CAP REQ :sasl"){t.Fatalf("CAP REQ=%q err=%v",line,err)}
+	write(":srv CAP engo ACK :sasl");if line,err:=read.ReadString('\n');err!=nil||!strings.Contains(line,"AUTHENTICATE PLAIN"){t.Fatalf("AUTHENTICATE=%q err=%v",line,err)}
+	write("AUTHENTICATE +");if _,err:=read.ReadString('\n');err!=nil{t.Fatal(err)}
+	write(":srv 903 engo :SASL authentication successful");if line,err:=read.ReadString('\n');err!=nil||!strings.Contains(line,"CAP END"){t.Fatalf("CAP END=%q err=%v",line,err)}
+	write(":srv 001 engo :welcome")
+	write(":srv CAP engo DEL :sasl")
+	_ = serverConn.Close()
+	if err:=<-done;err!=io.EOF{t.Fatalf("CAP DEL sasl after auth returned %v, want EOF",err)}
+}

@@ -50,3 +50,40 @@ func TestSchedulerTimerLimit(t *testing.T){
 	if err:=s.After("overflow",time.Hour,func(){});err==nil{t.Fatal("expected timer limit error")}
 	s.CancelAll()
 }
+
+func TestSchedulerReplacingEveryStopsOld(t *testing.T){
+	s:=NewScheduler()
+	var old atomic.Int32
+	var replacement atomic.Int32
+	if err:=s.Every("same",20*time.Millisecond,func(){old.Add(1)});err!=nil{t.Fatal(err)}
+	time.Sleep(30*time.Millisecond)
+	if err:=s.Every("same",20*time.Millisecond,func(){replacement.Add(1)});err!=nil{t.Fatal(err)}
+	oldAtReplace:=old.Load()
+	deadline:=time.After(500*time.Millisecond)
+	for replacement.Load()==0{
+		select{
+		case<-deadline:t.Fatal("replacement repeating timer did not fire")
+		default:time.Sleep(5*time.Millisecond)
+		}
+	}
+	time.Sleep(50*time.Millisecond)
+	if old.Load()!=oldAtReplace{t.Fatalf("replaced repeating timer continued: %d -> %d",oldAtReplace,old.Load())}
+	s.CancelAll()
+}
+
+func TestSchedulerCancelEveryPreventsFurtherCallbacks(t *testing.T){
+	s:=NewScheduler()
+	var count atomic.Int32
+	if err:=s.Every("repeat",20*time.Millisecond,func(){count.Add(1)});err!=nil{t.Fatal(err)}
+	deadline:=time.After(500*time.Millisecond)
+	for count.Load()==0{
+		select{
+		case<-deadline:t.Fatal("repeating timer did not fire")
+		default:time.Sleep(5*time.Millisecond)
+		}
+	}
+	if !s.Cancel("repeat"){t.Fatal("expected repeating timer cancellation")}
+	atCancel:=count.Load()
+	time.Sleep(60*time.Millisecond)
+	if count.Load()!=atCancel{t.Fatalf("callback ran after cancellation: %d -> %d",atCancel,count.Load())}
+}

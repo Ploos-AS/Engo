@@ -91,6 +91,8 @@ func (m *Manager) Reload(name string) error {
 	m.reloadMu.Lock();defer m.reloadMu.Unlock()
 	name,err:=cleanName(name);if err!=nil{return err}
 	if m.isDisabled(name){return fmt.Errorf("%s is disabled",name)}
+	path:=filepath.Join(m.dir,name)
+	info,err:=os.Stat(path);if err!=nil{return err};if info.IsDir(){return fmt.Errorf("%s is not a script",name)}
 	return m.reloadCurrent()
 }
 

@@ -382,3 +382,24 @@ func TestRunRejectsCAPRepliesAfterEnd(t *testing.T){
   select{case err:=<-errCh:if err==nil||!strings.Contains(err.Error(),"unexpected CAP "+reply+" after CAP END"){t.Fatalf("Run() error=%v",err)};case <-time.After(time.Second):t.Fatalf("Run() did not reject CAP %s after CAP END",reply)}
  })}
 }
+
+
+func TestRunRejectsRegistrationBeforeCAPComplete(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}()
+ if _,err:=fmt.Fprintln(serverConn,":server 001 nick :Welcome");err!=nil{t.Fatal(err)}
+ select{case err:=<-errCh:if err==nil||!strings.Contains(err.Error(),"registered before capability negotiation completed"){t.Fatalf("Run() error=%v",err)};case <-time.After(time.Second):t.Fatal("Run() accepted registration before CAP completed")}
+}
+
+func TestRunRejectsRegistrationBeforeSASLComplete(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{SASLUsername:"alice",SASLPassword:"secret"},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}();r:=bufio.NewReader(serverConn)
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * LS :sasl");err!=nil{t.Fatal(err)}
+ if _,err:=r.ReadString('\n');err!=nil{t.Fatal(err)}
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :sasl");err!=nil{t.Fatal(err)}
+ line,err:=r.ReadString('\n');if err!=nil{t.Fatal(err)};if strings.TrimSpace(line)!="AUTHENTICATE PLAIN"{t.Fatalf("unexpected SASL start %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,":server 001 nick :Welcome");err!=nil{t.Fatal(err)}
+ select{case err:=<-errCh:if err==nil||!strings.Contains(err.Error(),"registered before capability negotiation completed"){t.Fatalf("Run() error=%v",err)};case <-time.After(time.Second):t.Fatal("Run() accepted registration before SASL completed")}
+}

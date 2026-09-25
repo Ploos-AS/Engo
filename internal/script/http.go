@@ -15,6 +15,7 @@ type HTTPClient struct {
 	allowed map[string]bool
 	client *http.Client
 	maxBody int64
+	lookupIP func(string)([]net.IP,error)
 }
 
 func NewHTTPClient(hosts []string,timeout time.Duration,maxBody int64)*HTTPClient{

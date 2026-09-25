@@ -58,3 +58,35 @@ func TestManagerRejectsPathTraversal(t *testing.T) {
 	m:=NewManager(t.TempDir(),bot.New(&captureSender{}))
 	if err:=m.Disable("../outside.tengo");err==nil{t.Fatal("expected invalid script name")}
 }
+
+func TestManagerFailedDisableRollsBackState(t *testing.T){
+	dir:=t.TempDir()
+	one:=filepath.Join(dir,"one.tengo")
+	two:=filepath.Join(dir,"two.tengo")
+	writeScript(t,one,`bot("command","one","one")
+if bot("active","one"){bot("say",event["target"],"old")}`)
+	writeScript(t,two,`bot("command","two","two")`)
+	s:=&captureSender{};b:=bot.New(s);m:=NewManager(dir,b)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	if err:=os.WriteFile(one,[]byte("{{ invalid"),0o600);err!=nil{t.Fatal(err)}
+	if err:=m.Disable("two.tengo");err==nil{t.Fatal("expected disable reload failure")}
+	if got:=m.Disabled();len(got)!=0{t.Fatalf("disabled state not rolled back: %v",got)}
+	s.text=""
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!one"))
+	if s.text!="old"{t.Fatalf("old registry not preserved after failed disable: %q",s.text)}
+}
+
+func TestManagerFailedEnableRollsBackState(t *testing.T){
+	dir:=t.TempDir()
+	one:=filepath.Join(dir,"one.tengo")
+	two:=filepath.Join(dir,"two.tengo")
+	writeScript(t,one,`bot("command","one","one")
+if bot("active","one"){bot("say",event["target"],"old")}`)
+	writeScript(t,two,`bot("command","two","two")`)
+	s:=&captureSender{};b:=bot.New(s);m:=NewManager(dir,b)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	if err:=m.Disable("two.tengo");err!=nil{t.Fatal(err)}
+	if err:=os.WriteFile(one,[]byte("{{ invalid"),0o600);err!=nil{t.Fatal(err)}
+	if err:=m.Enable("two.tengo");err==nil{t.Fatal("expected enable reload failure")}
+	if got:=m.Disabled();len(got)!=1||got[0]!="two.tengo"{t.Fatalf("disabled state not rolled back: %v",got)}
+}

@@ -93,8 +93,8 @@ func (b *Bot) Handle(m irc.Message) error {
 	accountVerified:=account!=""
 	if tagged,ok:=m.Tags["account"];ok {
 		account=tagged
-		accountVerified=account!=""&&account!="*"
-		if account==""||account=="*"{account="";delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
+		accountVerified=account!=""&&account!="*"&&currentUserhost!=""
+		if !accountVerified{account="";delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
 	}
 	switch m.Command {
 	case "ACCOUNT":

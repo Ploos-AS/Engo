@@ -69,6 +69,7 @@ func (c Config) Validate() error {
 	if err:=validateScriptCapabilityNames(c.ScriptCapabilitiesRaw);err!=nil{return err}
 	if err:=validatePermissions(c.AccountPermissionsRaw);err!=nil{return err}
 	if err:=validateCommandPermissions(c.CommandPermissionsRaw);err!=nil{return err}
+	if err:=validatePermissionReferences(c.AccountPermissions,c.CommandPermissions);err!=nil{return err}
 	if c.ScriptMaxAllocs <= 0 { return fmt.Errorf("ENGO_SCRIPT_MAX_ALLOCS must be positive") }
 	if c.HTTPTimeout<=0 || c.HTTPMaxBody<=0 { return fmt.Errorf("invalid HTTP capability limits") }
 	if c.Server=="" { return nil }
@@ -161,5 +162,12 @@ func validateScriptCapabilityNames(raw string)error{
 		if base==""{return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",name)}
 		for _,r:=range base{if (r>='a'&&r<='z')||(r>='A'&&r<='Z')||(r>='0'&&r<='9')||r=='-'||r=='_'||r=='.'{continue};return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",name)}
 	}
+	return nil
+}
+
+func validatePermissionReferences(accounts map[string][]string,commands map[string]string)error{
+	declared:=make(map[string]bool)
+	for _,permissions:=range accounts{for _,permission:=range permissions{declared[strings.ToLower(strings.TrimSpace(permission))]=true}}
+	for command,permission:=range commands{permission=strings.ToLower(strings.TrimSpace(permission));if permission!=""&&!declared[permission]{return fmt.Errorf("ENGO_COMMAND_PERMISSIONS command %q references undeclared permission %q",command,permission)}}
 	return nil
 }

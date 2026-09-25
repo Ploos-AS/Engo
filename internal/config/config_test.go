@@ -58,3 +58,12 @@ func TestValidateSASLRequiresTLS(t *testing.T){
 	base.AllowInsecureSASL=false;base.TLS=true
 	if err:=base.Validate();err!=nil{t.Fatalf("TLS SASL rejected: %v",err)}
 }
+
+func TestValidateIRCCapabilities(t *testing.T){
+	for _,capability:=range []string{"account-notify","extended-join","server-time"}{
+		if err:=validateIRCCapability(capability);err!=nil{t.Fatalf("%s rejected: %v",capability,err)}
+	}
+	for _,capability:=range []string{"sasl","echo-message","unknown"}{
+		if err:=validateIRCCapability(capability);err==nil{t.Fatalf("expected %s to be rejected",capability)}
+	}
+}

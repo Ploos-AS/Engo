@@ -81,7 +81,7 @@ func (r *Runtime) eventCallFor(active string,currentEvent bot.Event)func(...teng
 			if len(args)!=3{return nil,tengo.ErrWrongNumArguments};duration,ok1:=tengo.ToString(args[1]);id,ok2:=tengo.ToString(args[2]);if !ok1||!ok2||strings.TrimSpace(id)==""{return nil,fmt.Errorf("timer_after requires duration and handler id strings")}
 			d,err:=parseTimerDuration(duration);if err!=nil{return nil,err}
 			timerID:=id
-			if err:=r.scheduler.After(timerID,d,func(){if err:=r.runHandler(r.currentSource(),id,bot.Event{Name:"timer"});err!=nil{fmt.Printf("Engo timer %s: %v\n",id,err)}});err!=nil{return nil,err}
+			if err:=r.scheduler.After(timerID,d,func(){if err:=r.runHandler(r.currentSource(),id,bot.Event{Name:"timer"});err!=nil{fmt.Fprintf(os.Stderr, "Engo timer %s: %v\\n", id, err)}});err!=nil{return nil,err}
 			return tengo.UndefinedValue,nil
 		case "timer_every":
 			if len(args)!=3{return nil,tengo.ErrWrongNumArguments};duration,ok1:=tengo.ToString(args[1]);id,ok2:=tengo.ToString(args[2]);if !ok1||!ok2||strings.TrimSpace(id)==""{return nil,fmt.Errorf("timer_every requires duration and handler id strings")}

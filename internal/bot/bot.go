@@ -92,8 +92,9 @@ func (b *Bot) Handle(m irc.Message) error {
 	account:=identity.account
 	accountVerified:=account!=""
 	if tagged,ok:=m.Tags["account"];ok {
+		previous:=identity
 		account=tagged
-		accountVerified=account!=""&&account!="*"&&currentUserhost!=""
+		accountVerified=account!=""&&account!="*"&&currentUserhost!=""&&(previous.account==""||previous.userhost==currentUserhost)
 		if !accountVerified{account="";delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
 	}
 	switch m.Command {
@@ -112,8 +113,7 @@ func (b *Bot) Handle(m irc.Message) error {
 	}
 	b.mu.Unlock()
 	ev := eventFromMessage(m)
-	if ev.Account==""{ev.Account=account}
-	if ev.Account!=""{ev.AccountVerified=accountVerified}
+	if !accountVerified{ev.Account=""}else{ev.Account=account;ev.AccountVerified=true}
 	if ev.Name == "" { return nil }
 
 	b.mu.RLock()

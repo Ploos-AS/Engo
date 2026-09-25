@@ -127,3 +127,20 @@ func TestNickChangePreservesAccountForSameUserhost(t *testing.T){
 	if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if got!="alice-account"{t.Fatalf("nick change lost authenticated account: %q",got)}
 }
+
+
+func TestCachedAccountWithoutCurrentUserhostFailsClosed(t *testing.T){
+	b:=New(&testSender{});var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!=""{t.Fatalf("message without userhost inherited cached account: %q",got)}
+}
+
+func TestAccountLearnedWithoutUserhostIsNotReusable(t *testing.T){
+	b:=New(&testSender{});var got string
+	b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+	if err:=b.Handle(irc.ParseMessage(":alice ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if got!=""{t.Fatalf("unbound account identity was reused: %q",got)}
+}

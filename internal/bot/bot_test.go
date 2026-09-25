@@ -72,3 +72,20 @@ func TestQuitClearsRFC1459EquivalentNickIdentity(t *testing.T){
 	if err:=b.Handle(irc.ParseMessage(":alice[!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if got!=""{t.Fatalf("QUIT left stale RFC1459-equivalent identity: %q",got)}
 }
+
+
+func TestISupportCaseMapping(t *testing.T){
+	tests:=[]struct{name,mapping,source,lookup string;want bool}{
+		{"ascii","ascii","Alice[","alice{",false},
+		{"strict-rfc1459","strict-rfc1459","Alice[","alice{",true},
+		{"strict caret","strict-rfc1459","Alice^","alice~",false},
+		{"rfc1459 caret","rfc1459","Alice^","alice~",true},
+	}
+	for _,tc:=range tests{t.Run(tc.name,func(t *testing.T){
+		b:=New(&testSender{});var got string;b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+		if err:=b.Handle(irc.ParseMessage(":server 005 engo CASEMAPPING="+tc.mapping+" :supported"));err!=nil{t.Fatal(err)}
+		if err:=b.Handle(irc.ParseMessage(":"+tc.source+"!u@example ACCOUNT account-one"));err!=nil{t.Fatal(err)}
+		if err:=b.Handle(irc.ParseMessage(":"+tc.lookup+"!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+		if (got=="account-one")!=tc.want{t.Fatalf("mapping %s lookup account=%q want match=%v",tc.mapping,got,tc.want)}
+	})}
+}

@@ -107,7 +107,11 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 			return err
 		}
 		reloadScripts = rt.Reload
-		name:=filepathBase(cfg.Script); caps:=append([]string(nil),cfg.ScriptCapabilities[name]...); moduleList=func()[]map[string]any{return []map[string]any{{"id":name,"runtime":"tengo","state":"active","capabilities":caps}}}
+		name := filepathBase(cfg.Script)
+		caps := append([]string(nil), cfg.ScriptCapabilities[name]...)
+		moduleList = func() []map[string]any {
+			return []map[string]any{{"id": name, "runtime": "tengo", "state": "active", "capabilities": caps}}
+		}
 	}
 	pbstate.SetModules(moduleList)
 	client.OnMessage(func(m irc.Message) error {

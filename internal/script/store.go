@@ -15,7 +15,7 @@ type Store struct {
 	mu sync.Mutex
 }
 
-func NewStore(root,namespace string)*Store{return &Store{root:root,namespace:namespace}}
+var storeLocks sync.Map\n\nfunc NewStore(root,namespace string)*Store{\n\tkey:=filepath.Join(root,namespace);v,_:=storeLocks.LoadOrStore(key,&sync.Mutex{});return &Store{root:root,namespace:namespace,mu:v.(*sync.Mutex)}\n}
 
 func (s *Store) Get(key string)(string,bool,error){
 	if err:=validKey(key);err!=nil{return "",false,err}

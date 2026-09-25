@@ -77,7 +77,8 @@ func (m *Manager) reloadCurrent() error {
 	sort.Strings(paths)
 	if len(paths)==0{
 		m.bot.Replace(bot.NewRegistry())
-		m.mu.Lock();m.runtimes=make(map[string]*Runtime);m.mu.Unlock()
+		m.mu.Lock();old:=m.runtimes;m.runtimes=make(map[string]*Runtime);m.mu.Unlock()
+		for _,rt:=range old{rt.Stop()}
 		return nil
 	}
 	return m.activate(paths)
@@ -92,7 +93,13 @@ func (m *Manager) activate(paths []string) error {
 		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		rt.src=append([]byte(nil),src...);next[path]=rt
 	}
-	m.bot.Replace(reg);m.mu.Lock();m.runtimes=next;m.mu.Unlock();return nil
+	m.bot.Replace(reg)
+	m.mu.Lock()
+	old:=m.runtimes
+	m.runtimes=next
+	m.mu.Unlock()
+	for _,rt:=range old{rt.Stop()}
+	return nil
 }
 
 func (m *Manager) Scripts()[]string{

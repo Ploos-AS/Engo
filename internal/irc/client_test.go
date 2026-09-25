@@ -417,3 +417,21 @@ func TestRunAcceptsRegistrationAfterCAPComplete(t *testing.T){
  serverConn.Close()
  if err:=<-errCh;err!=io.EOF{t.Fatalf("Run() error=%v, want EOF",err)}
 }
+
+
+func TestRunAcceptsRegistrationAfterSASLComplete(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{SASLUsername:"alice",SASLPassword:"secret"},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}();r:=bufio.NewReader(serverConn)
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * LS :sasl");err!=nil{t.Fatal(err)}
+ line,err:=r.ReadString('\n');if err!=nil{t.Fatal(err)};if strings.TrimSpace(line)!="CAP REQ :sasl"{t.Fatalf("unexpected CAP request %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :sasl");err!=nil{t.Fatal(err)}
+ line,err=r.ReadString('\n');if err!=nil{t.Fatal(err)};if strings.TrimSpace(line)!="AUTHENTICATE PLAIN"{t.Fatalf("unexpected SASL start %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,"AUTHENTICATE +");err!=nil{t.Fatal(err)}
+ line,err=r.ReadString('\n');if err!=nil{t.Fatal(err)};if !strings.HasPrefix(strings.TrimSpace(line),"AUTHENTICATE "){t.Fatalf("unexpected SASL payload %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,":server 903 nick :SASL authentication successful");err!=nil{t.Fatal(err)}
+ line,err=r.ReadString('\n');if err!=nil{t.Fatal(err)};if strings.TrimSpace(line)!="CAP END"{t.Fatalf("unexpected CAP completion %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,":server 001 nick :Welcome");err!=nil{t.Fatal(err)}
+ serverConn.Close()
+ if err:=<-errCh;err!=io.EOF{t.Fatalf("Run() error=%v, want EOF",err)}
+}

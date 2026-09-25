@@ -98,9 +98,9 @@ func (b *Bot) Handle(m irc.Message) error {
 	}
 	switch m.Command {
 	case "ACCOUNT":
-		account="";accountVerified=false;if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0];accountVerified=true};if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
+		account="";accountVerified=false;if len(m.Params)>0&&m.Params[0]!="*"&&currentUserhost!=""{account=m.Params[0];accountVerified=true};if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
 	case "JOIN":
-		if len(m.Params)>=2 { account=m.Params[1]; accountVerified=account!=""&&account!="*"; if account=="*"{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}} }
+		if len(m.Params)>=2 { account=m.Params[1]; accountVerified=account!=""&&account!="*"&&currentUserhost!=""; if !accountVerified{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}} }
 	case "NICK":
 		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,nickKey);b.accounts[ircNickKey(newNick,b.caseMapping)]=accountIdentity{account:account,userhost:currentUserhost}}
 	case "QUIT":

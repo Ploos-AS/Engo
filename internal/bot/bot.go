@@ -22,6 +22,7 @@ type Event struct {
 	Command string
 	Args []string
 	Account string
+	AccountVerified bool
 	RealName string
 	Message irc.Message
 }
@@ -89,15 +90,17 @@ func (b *Bot) Handle(m irc.Message) error {
 		}
 	}
 	account:=identity.account
+	accountVerified:=account!=""
 	if tagged,ok:=m.Tags["account"];ok {
 		account=tagged
+		accountVerified=account!=""&&account!="*"
 		if account==""||account=="*"{account="";delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
 	}
 	switch m.Command {
 	case "ACCOUNT":
-		account="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]};if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
+		account="";accountVerified=false;if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0];accountVerified=true};if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
 	case "JOIN":
-		if len(m.Params)>=2 { account=m.Params[1]; if account=="*"{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}} }
+		if len(m.Params)>=2 { account=m.Params[1]; accountVerified=account!=""&&account!="*"; if account=="*"{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}} }
 	case "NICK":
 		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,nickKey);b.accounts[ircNickKey(newNick,b.caseMapping)]=accountIdentity{account:account,userhost:currentUserhost}}
 	case "QUIT":
@@ -106,6 +109,7 @@ func (b *Bot) Handle(m irc.Message) error {
 	b.mu.Unlock()
 	ev := eventFromMessage(m)
 	if ev.Account==""{ev.Account=account}
+	if ev.Account!=""{ev.AccountVerified=accountVerified}
 	if ev.Name == "" { return nil }
 
 	b.mu.RLock()

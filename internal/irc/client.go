@@ -91,8 +91,21 @@ func (c *Client) Say(target, text string) error {
 func (c *Client) Notice(target, text string) error {
 	return c.writef("NOTICE %s :%s", sanitizeTarget(target), sanitizeText(text))
 }
-func (c *Client) Join(channel string) error { if !validChannel(channel) { return fmt.Errorf("invalid channel") }; return c.writef("JOIN %s", channel) }
-func (c *Client) Part(channel, reason string) error { if !validChannel(channel) { return fmt.Errorf("invalid channel") }; if reason=="" { return c.writef("PART %s", channel) }; return c.writef("PART %s :%s", channel, sanitizeText(reason)) }
+func (c *Client) Join(channel string) error {
+	if !validChannel(channel) {
+		return fmt.Errorf("invalid channel")
+	}
+	return c.writef("JOIN %s", channel)
+}
+func (c *Client) Part(channel, reason string) error {
+	if !validChannel(channel) {
+		return fmt.Errorf("invalid channel")
+	}
+	if reason == "" {
+		return c.writef("PART %s", channel)
+	}
+	return c.writef("PART %s :%s", channel, sanitizeText(reason))
+}
 func (c *Client) Action(target, text string) error {
 	return c.writef("PRIVMSG %s :\u0001ACTION %s\u0001", sanitizeTarget(target), sanitizeText(text))
 }
@@ -321,7 +334,8 @@ func (c *Client) Run() error {
 }
 
 func (c *Client) writef(format string, args ...any) error {
-	c.writeMu.Lock(); defer c.writeMu.Unlock()
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
 	if _, err := fmt.Fprintf(c.conn, format+"\r\n", args...); err != nil {
 		return fmt.Errorf("write IRC: %w", err)
 	}
@@ -428,7 +442,9 @@ func numericCommand(fields []string) string {
 	return ""
 }
 
-func validChannel(s string) bool { return len(s)>1 && len(s)<=200 && strings.ContainsRune("#&+!", rune(s[0])) && !strings.ContainsAny(s, " ,\x00\r\n") }
+func validChannel(s string) bool {
+	return len(s) > 1 && len(s) <= 200 && strings.ContainsRune("#&+!", rune(s[0])) && !strings.ContainsAny(s, " ,\x00\r\n")
+}
 
 func sanitizeTarget(s string) string {
 	s = strings.ReplaceAll(s, "\r", " ")

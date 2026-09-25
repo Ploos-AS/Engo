@@ -18,13 +18,18 @@ type State struct {
 	mu            sync.RWMutex
 	joined        map[string]bool
 	join          func(string) error
-	part          func(string,string) error
+	part          func(string, string) error
 }
 
 func NewState(nick, network string, channels ...string) *State {
 	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool)}
 }
-func (s *State) SetActions(join func(string) error, part func(string,string) error){s.mu.Lock();s.join=join;s.part=part;s.mu.Unlock()}
+func (s *State) SetActions(join func(string) error, part func(string, string) error) {
+	s.mu.Lock()
+	s.join = join
+	s.part = part
+	s.mu.Unlock()
+}
 func (s *State) SetConnected(v bool) {
 	s.connected.Store(v)
 	if !v {
@@ -118,7 +123,34 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		}
 		r.Result = map[string]any{"implementation": "engo", "version": "0.1.0", "nick": s.Nick, "state": state}
 	case "channels.join", "channels.part":
-		network,name,_:=paramsString(q.Params,"network","name","reason"); if network!=s.Network || !validPBMPChannel(name){r.OK=false;r.Error=map[string]any{"code":"invalid_params","message":"invalid network or channel"};break}; s.mu.RLock(); join,part:=s.join,s.part; s.mu.RUnlock(); if !s.Connected()||join==nil||part==nil{r.OK=false;r.Error=map[string]any{"code":"unavailable","message":"IRC connection unavailable"};break}; var err error; state:="joining"; if q.Method=="channels.join"{err=join(name)}else{err=part(name,param(q.Params,"reason"));state="parting"}; if err!=nil{r.OK=false;r.Error=map[string]any{"code":"operation_failed","message":err.Error()};break}; r.Result=map[string]any{"network":network,"name":name,"state":state}
+		network, name, _ := paramsString(q.Params, "network", "name", "reason")
+		if network != s.Network || !validPBMPChannel(name) {
+			r.OK = false
+			r.Error = map[string]any{"code": "invalid_params", "message": "invalid network or channel"}
+			break
+		}
+		s.mu.RLock()
+		join, part := s.join, s.part
+		s.mu.RUnlock()
+		if !s.Connected() || join == nil || part == nil {
+			r.OK = false
+			r.Error = map[string]any{"code": "unavailable", "message": "IRC connection unavailable"}
+			break
+		}
+		var err error
+		state := "joining"
+		if q.Method == "channels.join" {
+			err = join(name)
+		} else {
+			err = part(name, param(q.Params, "reason"))
+			state = "parting"
+		}
+		if err != nil {
+			r.OK = false
+			r.Error = map[string]any{"code": "operation_failed", "message": err.Error()}
+			break
+		}
+		r.Result = map[string]any{"network": network, "name": name, "state": state}
 	case "channels.list":
 		channels := make([]any, 0, len(s.Channels))
 		for _, name := range s.Channels {
@@ -137,9 +169,19 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	}
 	return appendJSONLine(r)
 }
-func param(m map[string]any,k string)string{v,_:=m[k].(string);return v}
-func paramsString(m map[string]any,keys ...string)(string,string,string){var v [3]string;for i,k:=range keys{if i<3{v[i]=param(m,k)}};return v[0],v[1],v[2]}
-func validPBMPChannel(s string)bool{return len(s)>1&&len(s)<=200&&strings.ContainsRune("#&+!",rune(s[0]))&&!strings.ContainsAny(s," ,\\x00\\r\\n")}
+func param(m map[string]any, k string) string { v, _ := m[k].(string); return v }
+func paramsString(m map[string]any, keys ...string) (string, string, string) {
+	var v [3]string
+	for i, k := range keys {
+		if i < 3 {
+			v[i] = param(m, k)
+		}
+	}
+	return v[0], v[1], v[2]
+}
+func validPBMPChannel(s string) bool {
+	return len(s) > 1 && len(s) <= 200 && strings.ContainsRune("#&+!", rune(s[0])) && !strings.ContainsAny(s, " ,\\x00\\r\\n")
+}
 func appendJSONLine(v any) ([]byte, error) {
 	b, e := json.Marshal(v)
 	if e != nil {

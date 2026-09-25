@@ -138,3 +138,33 @@ func TestNegativeCapabilityACKFailsFast(t *testing.T){
 		t.Fatal("negative ACK did not fail fast")
 	}
 }
+
+
+func TestCapabilityNAKReportsOnlyRequestedCapabilities(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
+	c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag","server-time"}},registrationTimeout:time.Second}
+	done:=make(chan error,1);go func(){done<-c.Run()}()
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo LS :account-tag server-time\r\n"));err!=nil{t.Fatal(err)}
+	buf:=make([]byte,256);if _,err:=serverConn.Read(buf);err!=nil{t.Fatal(err)}
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo NAK :server-time unrelated-cap\r\n"));err!=nil{t.Fatal(err)}
+	select{
+	case err:=<-done:
+		if err==nil{t.Fatal("expected requested capability rejection")}
+		if !strings.Contains(err.Error(),"server-time"){t.Fatalf("missing requested capability in error: %v",err)}
+		if strings.Contains(err.Error(),"unrelated-cap"){t.Fatalf("unrequested capability leaked into error: %v",err)}
+	case <-time.After(100*time.Millisecond):t.Fatal("CAP NAK did not fail fast")
+	}
+}
+
+func TestUnrequestedCapabilityNAKIsIgnored(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
+	c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+	done:=make(chan error,1);go func(){done<-c.Run()}()
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo LS :account-tag\r\n"));err!=nil{t.Fatal(err)}
+	buf:=make([]byte,256);if _,err:=serverConn.Read(buf);err!=nil{t.Fatal(err)}
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo NAK :unrelated-cap\r\n"));err!=nil{t.Fatal(err)}
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo ACK :account-tag\r\n"));err!=nil{t.Fatal(err)}
+	n,err:=serverConn.Read(buf);if err!=nil{t.Fatal(err)}
+	if !strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("negotiation did not continue after unrelated NAK: %q",buf[:n])}
+	_ = clientConn.Close();<-done
+}

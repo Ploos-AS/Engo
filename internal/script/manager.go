@@ -77,6 +77,8 @@ func (m *Manager) Enable(name string) error {
 func (m *Manager) Disable(name string) error {
 	m.reloadMu.Lock();defer m.reloadMu.Unlock()
 	name,err:=cleanName(name);if err!=nil{return err}
+	path:=filepath.Join(m.dir,name)
+	info,err:=os.Stat(path);if err!=nil{return err};if info.IsDir(){return fmt.Errorf("%s is not a script",name)}
 	m.mu.Lock();m.disabled[name]=true;m.mu.Unlock()
 	if err:=m.reloadCurrent();err!=nil{
 		m.mu.Lock();delete(m.disabled,name);m.mu.Unlock()

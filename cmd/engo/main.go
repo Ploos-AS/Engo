@@ -36,6 +36,7 @@ func runIRC(ctx context.Context,cfg config.Config)error{
 	if cfg.ScriptsDir!=""{
 		mgr:=script.NewManagerWithCapabilities(cfg.ScriptsDir,b,cfg.ScriptMaxAllocs,cfg.StateDir,cfg.HTTPAllow,cfg.HTTPTimeout,cfg.HTTPMaxBody)
 		mgr.SetPermissions(cfg.AccountPermissions)
+		mgr.SetCommandPermissions(cfg.CommandPermissions)
 		for name,caps:=range cfg.ScriptCapabilities{for _,capability:=range caps{if capability=="http"{if err:=mgr.SetScriptCapabilities(name,script.Capabilities{HTTP:true});err!=nil{return err}}}}
 		if err:=mgr.ReloadAll();err!=nil{return err}
 		reloadScripts=mgr.ReloadAll
@@ -44,6 +45,7 @@ func runIRC(ctx context.Context,cfg config.Config)error{
 		rt.SetStore(script.NewStore(cfg.StateDir,scriptNamespace(cfg.Script)))
 		rt.SetHTTP(script.NewHTTPClient(cfg.HTTPAllow,cfg.HTTPTimeout,cfg.HTTPMaxBody))
 		rt.SetPermissions(cfg.AccountPermissions)
+		rt.SetCommandPermissions(cfg.CommandPermissions)
 		for _,capability:=range cfg.ScriptCapabilities[filepathBase(cfg.Script)]{if capability=="http"{rt.SetCapabilities(script.Capabilities{HTTP:true})}}
 		if err:=rt.Load();err!=nil{return err}
 		reloadScripts=rt.Reload

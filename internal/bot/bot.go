@@ -80,7 +80,14 @@ func (b *Bot) Handle(m irc.Message) error {
 	nickKey:=ircNickKey(m.Nick,b.caseMapping)
 	identity:=b.accounts[nickKey]
 	currentUserhost:=messageUserhost(m)
-	if identity.account!=""&&identity.userhost!=""&&currentUserhost!=""&&identity.userhost!=currentUserhost{delete(b.accounts,nickKey);identity=accountIdentity{}}
+	if identity.account!="" {
+		// Cached authorization identity is only reusable when the message carries
+		// the same user@host. Missing or changed provenance fails closed.
+		if identity.userhost==""||currentUserhost==""||identity.userhost!=currentUserhost {
+			delete(b.accounts,nickKey)
+			identity=accountIdentity{}
+		}
+	}
 	account:=identity.account
 	if tagged,ok:=m.Tags["account"];ok {
 		account=tagged

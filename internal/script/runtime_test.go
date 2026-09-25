@@ -161,3 +161,25 @@ if bot("active","admin") { if bot("allowed","admin") { bot("say",event["target"]
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!admin"));err!=nil{t.Fatal(err)}
 	if sender.text!="yes"{t.Fatalf("granted permission result=%q",sender.text)}
 }
+
+func TestProtectedCommandDispatchDenyAllow(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"protected.tengo")
+	writeScript(t,path,`bot("command","reload","reload")
+if bot("active","reload") { bot("say",event["target"],"ran") }`)
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b)
+	rt.SetPermissions(map[string][]string{"alice-account":{"admin"}})
+	rt.SetCommandPermissions(map[string]string{"reload":"admin"})
+	if err:=rt.Load();err!=nil{t.Fatal(err)}
+
+	sender.text="untouched"
+	if err:=b.Handle(irc.ParseMessage(":bob!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="untouched"{t.Fatalf("unauthenticated protected command ran: %q",sender.text)}
+
+	if err:=b.Handle(irc.ParseMessage(":bob!u@example ACCOUNT bob-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":bob!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="untouched"{t.Fatalf("unauthorized protected command ran: %q",sender.text)}
+
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="ran"{t.Fatalf("authorized protected command did not run: %q",sender.text)}
+}

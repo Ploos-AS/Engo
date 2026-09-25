@@ -30,7 +30,7 @@ func main(){
 }
 
 func runIRC(ctx context.Context,cfg config.Config)error{
-	client,err:=irc.Dial(irc.Config{Server:cfg.Server,Nick:cfg.Nick,User:cfg.User,RealName:cfg.RealName,TLS:cfg.TLS,SASLUsername:cfg.SASLUsername,SASLPassword:cfg.SASLPassword});if err!=nil{return err};defer client.Close()
+	client,err:=irc.Dial(irc.Config{Server:cfg.Server,Nick:cfg.Nick,User:cfg.User,RealName:cfg.RealName,TLS:cfg.TLS,SASLUsername:cfg.SASLUsername,SASLPassword:cfg.SASLPassword,Capabilities:cfg.IRCCapabilities});if err!=nil{return err};defer client.Close()
 	b:=bot.New(client)
 	var reloadScripts func()error
 	if cfg.ScriptsDir!=""{

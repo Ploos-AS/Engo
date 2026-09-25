@@ -130,3 +130,23 @@ if bot("active","new"){bot("say",event["target"],"new-generation")}`)
 	time.Sleep(1200*time.Millisecond)
 	if s.text!=""{t.Fatalf("old generation timer fired after successful reload: %q",s.text)}
 }
+
+func TestManagerStorePersistsAcrossSuccessfulReload(t *testing.T){
+	dir:=t.TempDir()
+	stateDir:=t.TempDir()
+	path:=filepath.Join(dir,"state.tengo")
+	writeScript(t,path,`bot("command","set","set")
+if bot("active","set"){kv_set("value","persisted")}`)
+	s:=&captureSender{};b:=bot.New(s);m:=NewManagerWithState(dir,b,100000,stateDir)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!set"))
+	writeScript(t,path,`bot("command","get","get")
+if bot("active","get"){
+	v := kv_get("value")
+	bot("say",event["target"],v)
+}`)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	s.text=""
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
+	if s.text!="persisted"{t.Fatalf("store state did not survive reload: %q",s.text)}
+}

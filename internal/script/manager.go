@@ -14,51 +14,94 @@ import (
 type Manager struct {
 	dir string
 	bot *bot.Bot
+	maxAllocs int64
 	mu sync.RWMutex
 	runtimes map[string]*Runtime
+	disabled map[string]bool
 }
 
-func NewManager(dir string, b *bot.Bot) *Manager {
-	return &Manager{dir: dir, bot: b, runtimes: make(map[string]*Runtime)}
+func NewManager(dir string,b *bot.Bot)*Manager{return NewManagerLimited(dir,b,100000)}
+func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{
+	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
 }
 
-// ReloadAll validates every .tengo script before making the new set active.
-// If any script fails, the currently active set remains untouched.
 func (m *Manager) ReloadAll() error {
-	entries, err := os.ReadDir(m.dir)
-	if err != nil { return fmt.Errorf("read scripts directory: %w", err) }
-
+	entries,err:=os.ReadDir(m.dir); if err!=nil{return fmt.Errorf("read scripts directory: %w",err)}
 	var paths []string
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".tengo") { continue }
-		paths = append(paths, filepath.Join(m.dir, entry.Name()))
+	for _,e:=range entries{
+		if e.IsDir()||!strings.HasSuffix(e.Name(),".tengo")||m.isDisabled(e.Name()){continue}
+		paths=append(paths,filepath.Join(m.dir,e.Name()))
 	}
 	sort.Strings(paths)
-	if len(paths) == 0 { return fmt.Errorf("no .tengo scripts in %s", m.dir) }
+	if len(paths)==0{return fmt.Errorf("no enabled .tengo scripts in %s",m.dir)}
+	return m.activate(paths)
+}
 
-	reg := bot.NewRegistry()
-	next := make(map[string]*Runtime, len(paths))
-	for _, path := range paths {
-		rt := NewLimited(path, m.bot, m.maxAllocs)
-		src, err := os.ReadFile(path)
-		if err != nil { return fmt.Errorf("%s: %w", filepath.Base(path), err) }
-		if err := rt.prepare(src, &reg); err != nil { return fmt.Errorf("%s: %w", filepath.Base(path), err) }
-		rt.src = append([]byte(nil), src...)
-		next[path] = rt
+func (m *Manager) Enable(name string) error {
+	name,err:=cleanName(name); if err!=nil{return err}
+	path:=filepath.Join(m.dir,name)
+	if _,err:=os.Stat(path);err!=nil{return err}
+	m.mu.Lock(); delete(m.disabled,name); m.mu.Unlock()
+	if err:=m.reloadCurrent();err!=nil{
+		m.mu.Lock();m.disabled[name]=true;m.mu.Unlock()
+		return err
 	}
-
-	m.bot.Replace(reg)
-	m.mu.Lock()
-	m.runtimes = next
-	m.mu.Unlock()
 	return nil
 }
 
-func (m *Manager) Scripts() []string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	out := make([]string, 0, len(m.runtimes))
-	for path := range m.runtimes { out = append(out, filepath.Base(path)) }
-	sort.Strings(out)
-	return out
+func (m *Manager) Disable(name string) error {
+	name,err:=cleanName(name);if err!=nil{return err}
+	m.mu.Lock();m.disabled[name]=true;m.mu.Unlock()
+	if err:=m.reloadCurrent();err!=nil{
+		m.mu.Lock();delete(m.disabled,name);m.mu.Unlock()
+		return err
+	}
+	return nil
+}
+
+func (m *Manager) Reload(name string) error {
+	name,err:=cleanName(name);if err!=nil{return err}
+	if m.isDisabled(name){return fmt.Errorf("%s is disabled",name)}
+	return m.reloadCurrent()
+}
+
+func (m *Manager) reloadCurrent() error {
+	entries,err:=os.ReadDir(m.dir);if err!=nil{return err}
+	var paths []string
+	for _,e:=range entries{
+		if e.IsDir()||!strings.HasSuffix(e.Name(),".tengo")||m.isDisabled(e.Name()){continue}
+		paths=append(paths,filepath.Join(m.dir,e.Name()))
+	}
+	sort.Strings(paths)
+	if len(paths)==0{
+		m.bot.Replace(bot.NewRegistry())
+		m.mu.Lock();m.runtimes=make(map[string]*Runtime);m.mu.Unlock()
+		return nil
+	}
+	return m.activate(paths)
+}
+
+func (m *Manager) activate(paths []string) error {
+	reg:=bot.NewRegistry();next:=make(map[string]*Runtime,len(paths))
+	for _,path:=range paths{
+		rt:=NewLimited(path,m.bot,m.maxAllocs)
+		src,err:=os.ReadFile(path);if err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
+		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
+		rt.src=append([]byte(nil),src...);next[path]=rt
+	}
+	m.bot.Replace(reg);m.mu.Lock();m.runtimes=next;m.mu.Unlock();return nil
+}
+
+func (m *Manager) Scripts()[]string{
+	m.mu.RLock();defer m.mu.RUnlock();out:=make([]string,0,len(m.runtimes))
+	for path:=range m.runtimes{out=append(out,filepath.Base(path))};sort.Strings(out);return out
+}
+func (m *Manager) Disabled()[]string{
+	m.mu.RLock();defer m.mu.RUnlock();out:=make([]string,0,len(m.disabled))
+	for name,off:=range m.disabled{if off{out=append(out,name)}};sort.Strings(out);return out
+}
+func (m *Manager) isDisabled(name string)bool{m.mu.RLock();defer m.mu.RUnlock();return m.disabled[name]}
+func cleanName(name string)(string,error){
+	if filepath.Base(name)!=name||!strings.HasSuffix(name,".tengo")||name=="."{return "",fmt.Errorf("invalid script name %q",name)}
+	return name,nil
 }

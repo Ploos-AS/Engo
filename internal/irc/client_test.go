@@ -281,3 +281,16 @@ func TestRunNormalizesConfiguredCapabilities(t *testing.T){
  serverConn.Close()
  if err:=<-errCh;err!=io.EOF{t.Fatalf("Run() error=%v, want EOF",err)}
 }
+
+
+func TestRunRejectsUnexpectedSASLSuccess(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}()
+ if _,err:=fmt.Fprintln(serverConn,":server 903 nick :SASL authentication successful");err!=nil{t.Fatal(err)}
+ select{
+ case err:=<-errCh:
+  if err==nil||!strings.Contains(err.Error(),"unexpected SASL success numeric 903"){t.Fatalf("Run() error=%v",err)}
+ case <-time.After(time.Second):t.Fatal("Run() did not reject unexpected 903")
+ }
+}

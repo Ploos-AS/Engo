@@ -188,3 +188,16 @@ if bot("active","reload"){bot("say",event["target"],"ran")}`)
  for i:=0;i<25;i++{if err:=m.ReloadAll();err!=nil{t.Fatal(err)}}
  <-done
 }
+
+
+func TestManagerCopiesPermissionPolicyOnAssignment(t *testing.T){
+ b:=bot.New(&captureSender{});m:=NewManager(t.TempDir(),b)
+ permissions:=map[string][]string{"alice":{"admin"}}
+ commands:=map[string]string{"reload":"admin"}
+ m.SetPermissions(permissions);m.SetCommandPermissions(commands)
+ permissions["alice"][0]="mutated";permissions["bob"]=[]string{"admin"};commands["reload"]="mutated"
+ m.mu.RLock();defer m.mu.RUnlock()
+ if got:=m.permissions["alice"][0];got!="admin"{t.Fatalf("permission policy aliased caller data: %q",got)}
+ if _,ok:=m.permissions["bob"];ok{t.Fatal("permission map aliased caller data")}
+ if got:=m.commandPermissions["reload"];got!="admin"{t.Fatalf("command policy aliased caller data: %q",got)}
+}

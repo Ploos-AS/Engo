@@ -45,3 +45,9 @@ func TestHTTPTransportIgnoresEnvironmentProxy(t *testing.T){
 	if !ok{t.Fatal("expected HTTP transport")}
 	if tr.Proxy!=nil{t.Fatal("HTTP transport must not use environment proxy")}
 }
+
+func TestHTTPRejectsIPv4MappedPrivateAddress(t *testing.T){
+	ip:=net.ParseIP("::ffff:127.0.0.1")
+	if ip==nil{t.Fatal("failed to parse mapped IPv4 address")}
+	if !blockedIP(ip){t.Fatal("IPv4-mapped loopback address should be blocked")}
+}

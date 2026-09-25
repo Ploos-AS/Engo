@@ -33,7 +33,7 @@ func (r *Runtime) Load()error{return r.Reload()}
 func (r *Runtime) Reload()error{
 	src,err:=os.ReadFile(r.path);if err!=nil{return fmt.Errorf("read script: %w",err)}
 	reg:=bot.NewRegistry();if err:=r.prepare(src,&reg);err!=nil{return err}
-	r.mu.Lock();r.src=append([]byte(nil),src...);r.mu.Unlock();r.bot.Replace(reg);return nil
+	r.scheduler.CancelAll();r.mu.Lock();r.src=append([]byte(nil),src...);r.mu.Unlock();r.bot.Replace(reg);return nil
 }
 func RunFile(path string)error{return New(path,bot.New(discardSender{})).Load()}
 func (r *Runtime) prepare(src []byte,reg *bot.Registry)error{

@@ -22,15 +22,17 @@ type Runtime struct {
 	scheduler *Scheduler
 	http *HTTPClient
 	capabilities Capabilities
+	permissions map[string]map[string]bool
 }
 
 func New(path string,b *bot.Bot)*Runtime{return NewLimited(path,b,100000)}
 func NewLimited(path string,b *bot.Bot,maxAllocs int64)*Runtime{
-	return &Runtime{path:path,bot:b,maxAllocs:maxAllocs,store:NewStore("",scriptNamespace(path)),scheduler:NewScheduler(),http:NewHTTPClient(nil,10*time.Second,262144)}
+	return &Runtime{path:path,bot:b,maxAllocs:maxAllocs,store:NewStore("",scriptNamespace(path)),scheduler:NewScheduler(),http:NewHTTPClient(nil,10*time.Second,262144),permissions:make(map[string]map[string]bool)}
 }
 func (r *Runtime) SetStore(s *Store){r.store=s}
 func (r *Runtime) SetHTTP(h *HTTPClient){r.http=h}
 func (r *Runtime) SetCapabilities(c Capabilities){r.capabilities=c}
+func (r *Runtime) SetPermissions(p map[string][]string){r.permissions=make(map[string]map[string]bool);for account,perms:=range p{account=strings.ToLower(strings.TrimSpace(account));if account==""{continue};r.permissions[account]=make(map[string]bool);for _,perm:=range perms{perm=strings.ToLower(strings.TrimSpace(perm));if perm!=""{r.permissions[account][perm]=true}}}}
 func (r *Runtime) Load()error{return r.Reload()}
 func (r *Runtime) Reload()error{
 	src,err:=os.ReadFile(r.path);if err!=nil{return fmt.Errorf("read script: %w",err)}
@@ -59,15 +61,19 @@ func (r *Runtime) registrationCall(src []byte,reg *bot.Registry)func(...tengo.Ob
 func (r *Runtime) runHandler(src []byte,id string,ev bot.Event)error{
 	s:=tengo.NewScript(src);s.SetMaxAllocs(r.maxAllocs)
 	if err:=s.Add("event",eventObject(ev));err!=nil{return err}
-	if err:=s.Add("bot",&tengo.UserFunction{Name:"bot",Value:r.eventCall(id)});err!=nil{return err}
+	if err:=s.Add("bot",&tengo.UserFunction{Name:"bot",Value:r.eventCallFor(id,ev)});err!=nil{return err}
 	if _,err:=s.Run();err!=nil{return fmt.Errorf("Tengo handler %s: %w",id,err)};return nil
 }
 func (r *Runtime) eventCall(active string)func(...tengo.Object)(tengo.Object,error){
+	return r.eventCallFor(active,bot.Event{})
+}
+func (r *Runtime) eventCallFor(active string,currentEvent bot.Event)func(...tengo.Object)(tengo.Object,error){
 	return func(args ...tengo.Object)(tengo.Object,error){
 		if len(args)<1{return nil,tengo.ErrWrongNumArguments};op,ok:=tengo.ToString(args[0]);if !ok{return nil,fmt.Errorf("bot operation must be a string")}
 		switch op{
 		case "on","command":return tengo.UndefinedValue,nil
 		case "active":if len(args)!=2{return nil,tengo.ErrWrongNumArguments};id,_:=tengo.ToString(args[1]);return tengo.FromInterface(id==active)
+		case "allowed":if len(args)!=2{return nil,tengo.ErrWrongNumArguments};perm,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("permission must be string")};account:=strings.ToLower(eventAccount(currentEvent));return tengo.FromInterface(account!=""&&r.permissions[account][strings.ToLower(strings.TrimSpace(perm))])
 		case "timer_after":
 			if len(args)!=3{return nil,tengo.ErrWrongNumArguments};duration,ok1:=tengo.ToString(args[1]);id,ok2:=tengo.ToString(args[2]);if !ok1||!ok2||strings.TrimSpace(id)==""{return nil,fmt.Errorf("timer_after requires duration and handler id strings")}
 			d,err:=parseTimerDuration(duration);if err!=nil{return nil,err}

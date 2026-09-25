@@ -17,6 +17,7 @@ func NewScheduler()*Scheduler{return &Scheduler{timers:make(map[string]timerEntr
 
 func (s *Scheduler) After(id string,d time.Duration,fn func()){
 	s.cancelLocked(id)
+	token:=&struct{}{}
 	var t *time.Timer
 	t=time.AfterFunc(d,func(){
 		s.mu.Lock()

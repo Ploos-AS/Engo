@@ -46,7 +46,7 @@ if bot("active","two"){bot("say",event["target"],"two")}`)
 	s:=&captureSender{};b:=bot.New(s);m:=NewManager(dir,b)
 	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
 	if err:=m.Disable("two.tengo");err!=nil{t.Fatal(err)}
-	s.text=""
+	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!two"))
 	if s.text!=""{t.Fatalf("disabled script still handled command: %q",s.text)}
 	if got:=m.Disabled();len(got)!=1||got[0]!="two.tengo"{t.Fatalf("disabled=%v",got)}
@@ -72,7 +72,7 @@ if bot("active","one"){bot("say",event["target"],"old")}`)
 	if err:=os.WriteFile(one,[]byte("{{ invalid"),0o600);err!=nil{t.Fatal(err)}
 	if err:=m.Disable("two.tengo");err==nil{t.Fatal("expected disable reload failure")}
 	if got:=m.Disabled();len(got)!=0{t.Fatalf("disabled state not rolled back: %v",got)}
-	s.text=""
+	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!one"))
 	if s.text!="old"{t.Fatalf("old registry not preserved after failed disable: %q",s.text)}
 }
@@ -105,7 +105,7 @@ if bot("active","fired"){bot("say",event["target"],"timer-fired")}`)
 	if err:=m.ReloadAll();err==nil{t.Fatal("expected reload failure")}
 	deadline:=time.Now().Add(2*time.Second)
 	for time.Now().Before(deadline){
-		if s.text=="timer-fired"{return}
+		if _,text:=s.snapshot();text=="timer-fired"{return}
 		time.Sleep(20*time.Millisecond)
 	}
 	t.Fatal("old generation timer was lost after failed reload")
@@ -123,12 +123,12 @@ if bot("active","old-fired"){bot("say",event["target"],"old-timer-fired")}`)
 	writeScript(t,path,`bot("command","new","new")
 if bot("active","new"){bot("say",event["target"],"new-generation")}`)
 	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
-	s.text=""
+	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!new"))
 	if s.text!="new-generation"{t.Fatalf("new registry not active: %q",s.text)}
-	s.text=""
+	s.reset()
 	time.Sleep(1200*time.Millisecond)
-	if s.text!=""{t.Fatalf("old generation timer fired after successful reload: %q",s.text)}
+	if _,text:=s.snapshot();text!=""{t.Fatalf("old generation timer fired after successful reload: %q",text)}
 }
 
 func TestManagerStorePersistsAcrossSuccessfulReload(t *testing.T){
@@ -146,7 +146,7 @@ if bot("active","get"){
 	bot("say",event["target"],v)
 }`)
 	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
-	s.text=""
+	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
 	if s.text!="persisted"{t.Fatalf("store state did not survive reload: %q",s.text)}
 }
@@ -166,7 +166,7 @@ if bot("active","get"){
 	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!set"))
 	if err:=m.Disable("state.tengo");err!=nil{t.Fatal(err)}
-	s.text=""
+	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
 	if s.text!=""{t.Fatalf("disabled script still handled command: %q",s.text)}
 	if err:=m.Enable("state.tengo");err!=nil{t.Fatal(err)}

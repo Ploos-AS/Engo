@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,10 +12,12 @@ import (
 	"github.com/Ploos-AS/Engo/internal/irc"
 )
 
-type captureSender struct{ target, text string }
-func (s *captureSender) Say(target, text string) error { s.target, s.text = target, text; return nil }
+type captureSender struct{ mu sync.RWMutex; target, text string }
+func (s *captureSender) Say(target, text string) error { s.mu.Lock(); defer s.mu.Unlock(); s.target, s.text = target, text; return nil }
 func (s *captureSender) Notice(string, string) error { return nil }
 func (s *captureSender) Action(string, string) error { return nil }
+func (s *captureSender) snapshot() (string,string) { s.mu.RLock(); defer s.mu.RUnlock(); return s.target,s.text }
+func (s *captureSender) reset() { s.mu.Lock(); defer s.mu.Unlock(); s.target,s.text = "","" }
 
 func writeScript(t *testing.T, path, body string) {
 	t.Helper()

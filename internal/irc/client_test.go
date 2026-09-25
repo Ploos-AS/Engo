@@ -44,3 +44,8 @@ func TestAuthenticateChunks(t *testing.T){
 		if (chunks[len(chunks)-1]=="+")!=tc.terminal{t.Fatalf("terminal marker mismatch: %#v",chunks)}
 	})}
 }
+
+func TestCapabilityNamesFromNAK(t *testing.T){
+	caps:=capabilityNames(":irc.example CAP engo NAK :sasl echo-message")
+	if !containsCapability(caps,"sasl")||!containsCapability(caps,"echo-message"){t.Fatalf("unexpected NAK capabilities: %#v",caps)}
+}

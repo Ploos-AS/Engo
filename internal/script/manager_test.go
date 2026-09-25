@@ -20,7 +20,7 @@ if bot("active","two"){bot("say",event["target"],"two")}`)
 	if err:=m.ReloadAll(); err!=nil { t.Fatal(err) }
 	if got:=m.Scripts(); len(got)!=2 { t.Fatalf("scripts=%v",got) }
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!two"))
-	if s.text!="two" { t.Fatalf("unexpected reply %q",s.text) }
+	if _,text:=s.snapshot();text!="two" { t.Fatalf("unexpected reply %q",text) }
 }
 
 func TestManagerRollbackWhenOneScriptFails(t *testing.T) {
@@ -33,7 +33,7 @@ if bot("active","ok"){bot("say",event["target"],"old")}`)
 	if err:=os.WriteFile(filepath.Join(dir,"broken.tengo"),[]byte("{{ invalid"),0o600); err!=nil { t.Fatal(err) }
 	if err:=m.ReloadAll(); err==nil { t.Fatal("expected reload failure") }
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!ok"))
-	if s.text!="old" { t.Fatalf("old registry not preserved: %q",s.text) }
+	if _,text:=s.snapshot();text!="old" { t.Fatalf("old registry not preserved: %q",text) }
 }
 
 
@@ -48,11 +48,11 @@ if bot("active","two"){bot("say",event["target"],"two")}`)
 	if err:=m.Disable("two.tengo");err!=nil{t.Fatal(err)}
 	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!two"))
-	if s.text!=""{t.Fatalf("disabled script still handled command: %q",s.text)}
+	if _,text:=s.snapshot();text!=""{t.Fatalf("disabled script still handled command: %q",text)}
 	if got:=m.Disabled();len(got)!=1||got[0]!="two.tengo"{t.Fatalf("disabled=%v",got)}
 	if err:=m.Enable("two.tengo");err!=nil{t.Fatal(err)}
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!two"))
-	if s.text!="two"{t.Fatalf("enabled script did not return: %q",s.text)}
+	if _,text:=s.snapshot();text!="two"{t.Fatalf("enabled script did not return: %q",text)}
 }
 
 func TestManagerRejectsPathTraversal(t *testing.T) {
@@ -74,7 +74,7 @@ if bot("active","one"){bot("say",event["target"],"old")}`)
 	if got:=m.Disabled();len(got)!=0{t.Fatalf("disabled state not rolled back: %v",got)}
 	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!one"))
-	if s.text!="old"{t.Fatalf("old registry not preserved after failed disable: %q",s.text)}
+	if _,text:=s.snapshot();text!="old"{t.Fatalf("old registry not preserved after failed disable: %q",text)}
 }
 
 func TestManagerFailedEnableRollsBackState(t *testing.T){
@@ -125,7 +125,7 @@ if bot("active","new"){bot("say",event["target"],"new-generation")}`)
 	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
 	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!new"))
-	if s.text!="new-generation"{t.Fatalf("new registry not active: %q",s.text)}
+	if _,text:=s.snapshot();text!="new-generation"{t.Fatalf("new registry not active: %q",text)}
 	s.reset()
 	time.Sleep(1200*time.Millisecond)
 	if _,text:=s.snapshot();text!=""{t.Fatalf("old generation timer fired after successful reload: %q",text)}
@@ -148,7 +148,7 @@ if bot("active","get"){
 	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
 	s.reset()
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
-	if s.text!="persisted"{t.Fatalf("store state did not survive reload: %q",s.text)}
+	if _,text:=s.snapshot();text!="persisted"{t.Fatalf("store state did not survive reload: %q",text)}
 }
 
 func TestManagerStorePersistsAcrossDisableEnable(t *testing.T){
@@ -171,5 +171,5 @@ if bot("active","get"){
 	if s.text!=""{t.Fatalf("disabled script still handled command: %q",s.text)}
 	if err:=m.Enable("state.tengo");err!=nil{t.Fatal(err)}
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
-	if s.text!="persisted"{t.Fatalf("store state did not survive disable/enable: %q",s.text)}
+	if _,text:=s.snapshot();text!="persisted"{t.Fatalf("store state did not survive disable/enable: %q",text)}
 }

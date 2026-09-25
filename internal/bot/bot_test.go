@@ -180,3 +180,24 @@ func TestNickChangeWithoutUserhostDoesNotMigrateAccount(t *testing.T){
  if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
  if got!=""{t.Fatalf("NICK without userhost migrated account identity: %q",got)}
 }
+
+
+func TestAccountTagUserhostChangeClearsVerification(t *testing.T) {
+	b := New(&testSender{})
+	var got Event
+	b.Command("who", func(ev Event) error { got = ev; return nil })
+
+	if err := b.Handle(irc.ParseMessage("@account=alice-account :alice!old@example PRIVMSG #engo :!who")); err != nil {
+		t.Fatal(err)
+	}
+	if !got.AccountVerified {
+		t.Fatal("initial account-tag identity was not verified")
+	}
+
+	if err := b.Handle(irc.ParseMessage("@account=alice-account :alice!new@example PRIVMSG #engo :!who")); err != nil {
+		t.Fatal(err)
+	}
+	if got.AccountVerified || got.Account != "" {
+		t.Fatalf("account-tag with changed userhost remained verified: %#v", got)
+	}
+}

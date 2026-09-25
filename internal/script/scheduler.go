@@ -13,7 +13,9 @@ type Scheduler struct {
 	timers map[string]timerEntry
 }
 
-const maxActiveTimers = 32\n\nfunc NewScheduler()*Scheduler{return &Scheduler{timers:make(map[string]timerEntry)}}
+const maxActiveTimers = 32
+
+func NewScheduler()*Scheduler{return &Scheduler{timers:make(map[string]timerEntry)}}
 
 func (s *Scheduler) After(id string,d time.Duration,fn func()){
 	s.cancelLocked(id)

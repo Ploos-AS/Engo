@@ -102,6 +102,7 @@ func (m *Manager) activate(paths []string) error {
 		rt:=NewLimited(path,m.bot,m.maxAllocs)
 		rt.SetStore(NewStore(m.stateDir,scriptNamespace(path)))
 		rt.SetHTTP(NewHTTPClient(m.httpHosts,m.httpTimeout,m.httpMaxBody))
+		rt.SetCapabilities(Capabilities{HTTP:len(m.httpHosts)>0})
 		src,err:=os.ReadFile(path);if err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		rt.src=append([]byte(nil),src...);next[path]=rt

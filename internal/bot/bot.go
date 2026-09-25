@@ -74,11 +74,15 @@ func (b *Bot) Command(name string, handler Handler) {
 func (b *Bot) Handle(m irc.Message) error {
 	b.mu.Lock()
 	account:=b.accounts[m.Nick]
+	if tagged,ok:=m.Tags["account"];ok {
+		account=tagged
+		if account==""||account=="*"{account="";delete(b.accounts,m.Nick)}else{b.accounts[m.Nick]=account}
+	}
 	switch m.Command {
 	case "ACCOUNT":
 		account="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]};if account==""{delete(b.accounts,m.Nick)}else{b.accounts[m.Nick]=account}
 	case "JOIN":
-		if len(m.Params)>=2 { account=m.Params[1]; if account=="*"{account=""}; if account!=""{b.accounts[m.Nick]=account} }
+		if len(m.Params)>=2 { account=m.Params[1]; if account=="*"{account=""}; if account==""{delete(b.accounts,m.Nick)}else{b.accounts[m.Nick]=account} }
 	case "NICK":
 		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,m.Nick);b.accounts[newNick]=account}
 	case "QUIT":

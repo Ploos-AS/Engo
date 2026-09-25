@@ -27,6 +27,9 @@ type Manager struct {
 
 func NewManager(dir string,b *bot.Bot)*Manager{return NewManagerLimited(dir,b,100000)}
 func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{return NewManagerWithState(dir,b,maxAllocs,"")}
+func NewManagerWithCapabilities(dir string,b *bot.Bot,maxAllocs int64,stateDir string,httpHosts []string,httpTimeout time.Duration,httpMaxBody int64)*Manager{
+	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpHosts:httpHosts,httpTimeout:httpTimeout,httpMaxBody:httpMaxBody,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
+}
 func NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*Manager{
 	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpTimeout:10*time.Second,httpMaxBody:262144,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
 }

@@ -39,7 +39,7 @@ Raw IRC writes, filesystem access and network access outside declared capabiliti
 - M0: repository foundation, Go executable, minimal IRC wire client, Tengo proof of concept, tests and CI.
 - M1: robust IRC connection lifecycle, reconnect/backoff, TLS/SASL and configuration validation. **Implemented.**
 - M2: Tengo event and command API. **Implemented (initial API).**
-- M3: script lifecycle, isolation and hot reload. **In progress:** transactional SIGHUP reload and handler failure containment implemented.
+- M3: script lifecycle, isolation and hot reload. **Implemented:** transactional reload, multi-script management, handler failure containment, allocation limits and per-script enable/disable/reload lifecycle.
 - M4: persistence, timers and capability-scoped HTTP.
 - M5: IRCv3 and permissions/ACL model.
 - M6: production OCI/release pipeline and operational documentation.
@@ -56,4 +56,4 @@ Output capabilities are `bot("say", target, text)`, `bot("notice", target, text)
 
 The active script is replaced transactionally. Engo first reads and evaluates the candidate into a fresh handler registry; only a successful candidate becomes active. A failed reload leaves the previous handlers untouched. On Unix-like systems, SIGHUP requests reload without dropping the IRC connection.
 
-Runtime errors from an event or command handler are contained at the bot boundary and logged rather than terminating the IRC session. A managed multi-script directory is now supported through `ENGO_SCRIPTS_DIR`; all candidate scripts are validated before the active registry is replaced, so one broken script rolls back the complete reload. Further M3 work will add execution resource limits and finer per-script lifecycle controls.
+Runtime errors from an event or command handler are contained at the bot boundary and logged rather than terminating the IRC session. A managed multi-script directory is now supported through `ENGO_SCRIPTS_DIR`; all candidate scripts are validated before the active registry is replaced, so one broken script rolls back the complete reload. Tengo execution has an allocation budget, and the manager exposes per-script `Enable`, `Disable` and `Reload` lifecycle operations. Script names are constrained to local `.tengo` filenames to prevent path traversal.

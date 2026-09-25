@@ -100,3 +100,25 @@ func TestPartialCapabilityACKWaitsForAllRequested(t *testing.T){
 	if !strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("CAP END missing after all ACKs: %q",buf[:n])}
 	_ = clientConn.Close();<-done
 }
+
+
+func TestCapabilityNameModifiers(t *testing.T){
+	cases:=map[string]string{
+		"account-tag":"account-tag",
+		"-account-tag":"account-tag",
+		"~server-time":"server-time",
+		"=sasl":"sasl",
+		"sasl=PLAIN,EXTERNAL":"sasl",
+		"~sasl=PLAIN":"sasl",
+		"":"",
+		"-":"",
+	}
+	for in,want:=range cases{if got:=capabilityName(in);got!=want{t.Errorf("capabilityName(%q)=%q want %q",in,got,want)}}
+}
+
+func TestCapabilityNamesNormalizeModifiers(t *testing.T){
+	caps:=capabilityNames(":irc.example CAP engo ACK :-account-tag ~server-time =sasl")
+	for _,want:=range []string{"account-tag","server-time","sasl"}{
+		if !containsCapability(caps,want){t.Fatalf("missing normalized capability %q in %#v",want,caps)}
+	}
+}

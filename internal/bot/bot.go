@@ -154,7 +154,15 @@ func (b *Bot) applyISupport(m irc.Message){
 	for _,p:=range m.Params{
 		if strings.HasPrefix(strings.ToUpper(p),"CASEMAPPING="){
 			v:=strings.ToLower(strings.TrimSpace(strings.SplitN(p,"=",2)[1]))
-			switch v{case "ascii","rfc1459","strict-rfc1459":b.caseMapping=v}
+			switch v{
+			case "ascii","rfc1459","strict-rfc1459":
+				if v!=b.caseMapping{
+					// Identity cache keys depend on CASEMAPPING. Fail closed rather
+					// than risk granting permissions through a stale nick mapping.
+					b.accounts=make(map[string]string)
+					b.caseMapping=v
+				}
+			}
 		}
 	}
 }

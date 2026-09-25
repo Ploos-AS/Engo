@@ -50,7 +50,7 @@ if bot("active","hello") { bot("say",event["target"],"v1") }`
 
 	writeScript(t,path,`this is not valid tengo {{{`)
 	if err:=rt.Reload(); err==nil { t.Fatal("expected reload failure") }
-	sender.text=""
+	sender.reset()
 	_ = b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!hello"))
 	if sender.text!="v1" { t.Fatalf("previous script was not preserved: %#v",sender) }
 }
@@ -133,7 +133,7 @@ if bot("active","who") { bot("say",event["target"],event["account"]) }`)
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if sender.text!="alice-account"{t.Fatalf("persisted account=%q",sender.text)}
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT *"));err!=nil{t.Fatal(err)}
-	sender.text="sentinel"
+	sender.mu.Lock(); sender.text="sentinel"; sender.mu.Unlock()
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if sender.text!=""{t.Fatalf("account should be cleared after logout, got %q",sender.text)}
 }
@@ -148,7 +148,7 @@ if bot("active","who") { bot("say",event["target"],event["account"]) }`)
 	if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if sender.text!="alice-account"{t.Fatalf("account after nick=%q",sender.text)}
 	if err:=b.Handle(irc.ParseMessage(":alice2!u@example QUIT :bye"));err!=nil{t.Fatal(err)}
-	sender.text="sentinel"
+	sender.mu.Lock(); sender.text="sentinel"; sender.mu.Unlock()
 	if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if sender.text!=""{t.Fatalf("account after quit=%q",sender.text)}
 }
@@ -174,7 +174,7 @@ if bot("active","reload") { bot("say",event["target"],"ran") }`)
 	rt.SetCommandPermissions(map[string]string{"reload":"admin"})
 	if err:=rt.Load();err!=nil{t.Fatal(err)}
 
-	sender.text="untouched"
+	sender.mu.Lock(); sender.text="untouched"; sender.mu.Unlock()
 	if err:=b.Handle(irc.ParseMessage(":bob!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
 	if sender.text!="untouched"{t.Fatalf("unauthenticated protected command ran: %q",sender.text)}
 
@@ -225,7 +225,7 @@ func TestAccountNotifyCacheDifferentUserhostDenied(t *testing.T){
 	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
 	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
 	if err:=b.Handle(irc.ParseMessage(":alice!old@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
-	sender.text="untouched"
+	sender.mu.Lock(); sender.text="untouched"; sender.mu.Unlock()
 	if err:=b.Handle(irc.ParseMessage(":alice!new@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
 	if sender.text!="untouched"{t.Fatalf("stale account-notify identity authorized command: %q",sender.text)}
 }
@@ -246,7 +246,7 @@ func TestAccountLogoutRevokesProtectedCommand(t *testing.T){
 	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT *"));err!=nil{t.Fatal(err)}
-	sender.text="untouched";if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	sender.mu.Lock(); sender.text="untouched"; sender.mu.Unlock();if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
 	if sender.text!="untouched"{t.Fatalf("logout did not revoke protected command: %q",sender.text)}
 }
 
@@ -255,7 +255,7 @@ func TestQuitRevokesProtectedCommand(t *testing.T){
 	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
 	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)};if err:=b.Handle(irc.ParseMessage(":alice!u@example QUIT :bye"));err!=nil{t.Fatal(err)}
-	sender.text="untouched";if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	sender.mu.Lock(); sender.text="untouched"; sender.mu.Unlock();if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
 	if sender.text!="untouched"{t.Fatalf("QUIT did not revoke protected command: %q",sender.text)}
 }
 

@@ -1,6 +1,9 @@
 package irc
 
 import (
+	"bufio"
+	"fmt"
+	"io"
 	"net"
 	"strings"
 	"testing"

@@ -8,3 +8,16 @@ func TestParsePrivmsg(t *testing.T) {
 		t.Fatalf("unexpected message: %#v", m)
 	}
 }
+
+func TestParseMessageTags(t *testing.T) {
+	m := ParseMessage("@time=2026-09-25T09:30:00.000Z;account=alice\\suser :alice!u@example PRIVMSG #engo :hello")
+	if m.Tags["time"] != "2026-09-25T09:30:00.000Z" { t.Fatalf("unexpected time tag: %q", m.Tags["time"]) }
+	if m.Tags["account"] != "alice user" { t.Fatalf("unexpected account tag: %q", m.Tags["account"]) }
+	if m.Nick != "alice" || m.Command != "PRIVMSG" || m.Trailing != "hello" { t.Fatalf("unexpected message: %#v", m) }
+}
+
+func TestUnescapeTag(t *testing.T) {
+	got := unescapeTag("one\\stwo\\:three\\\\four\\r\\nfive")
+	want := "one two;three\\four\r\nfive"
+	if got != want { t.Fatalf("got %q, want %q", got, want) }
+}

@@ -11,13 +11,15 @@ import (
 
 type State struct {
 	Nick, Network string
-	Channels []string
+	Channels      []string
 	connected     atomic.Bool
 }
 
-func NewState(nick, network string, channels ...string) *State { return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...)} }
-func (s *State) SetConnected(v bool)       { s.connected.Store(v) }
-func (s *State) Connected() bool           { return s.connected.Load() }
+func NewState(nick, network string, channels ...string) *State {
+	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...)}
+}
+func (s *State) SetConnected(v bool) { s.connected.Store(v) }
+func (s *State) Connected() bool     { return s.connected.Load() }
 
 type request struct {
 	PBMP   int            `json:"pbmp"`
@@ -56,9 +58,13 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		r.Result = map[string]any{"implementation": "engo", "version": "0.1.0", "nick": s.Nick, "state": state}
 	case "channels.list":
 		state := "disconnected"
-		if s.Connected() { state = "configured" }
+		if s.Connected() {
+			state = "configured"
+		}
 		channels := make([]any, 0, len(s.Channels))
-		for _, name := range s.Channels { channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": state}) }
+		for _, name := range s.Channels {
+			channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": state})
+		}
 		r.Result = map[string]any{"channels": channels}
 	case "networks.list":
 		state := "disconnected"

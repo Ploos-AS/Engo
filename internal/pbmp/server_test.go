@@ -33,4 +33,20 @@ func TestUnknown(t *testing.T) {
 	}
 }
 
-func TestChannelsList(t *testing.T){s:=NewState("engo","irc.example","#engo","#ops");s.SetConnected(true);b,e:=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"c\",\"method\":\"channels.list\",\"params\":{}}"),s);if e!=nil{t.Fatal(e)};var v map[string]any;if e=json.Unmarshal(b,&v);e!=nil{t.Fatal(e)};result:=v["result"].(map[string]any);channels:=result["channels"].([]any);if len(channels)!=2{t.Fatalf("channels=%v",channels)}}
+func TestChannelsList(t *testing.T) {
+	s := NewState("engo", "irc.example", "#engo", "#ops")
+	s.SetConnected(true)
+	b, e := Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"c\",\"method\":\"channels.list\",\"params\":{}}"), s)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var v map[string]any
+	if e = json.Unmarshal(b, &v); e != nil {
+		t.Fatal(e)
+	}
+	result := v["result"].(map[string]any)
+	channels := result["channels"].([]any)
+	if len(channels) != 2 {
+		t.Fatalf("channels=%v", channels)
+	}
+}

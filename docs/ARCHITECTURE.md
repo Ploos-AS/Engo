@@ -34,6 +34,12 @@ The public Tengo API will evolve around controlled objects such as `bot` and eve
 
 Raw IRC writes, filesystem access and network access outside declared capabilities should not be exposed by default.
 
+## Optional web management plane
+
+Engo is a complete, standalone headless IRC bot. A web interface is optional and must not be required to configure, start, run, script, reload, or operate an Engo instance.
+
+The web dashboard/control plane is a separate component and process rather than code embedded in the bot. It may manage multiple independent Engo instances through a small, versioned management interface. Engo must remain usable when that interface is disabled or absent. Bot instances own IRC connectivity and runtime state; the web component owns browser UI and multi-instance orchestration. Secrets such as SASL passwords must not be exposed as readable values through the management interface.
+
 ## Milestones
 
 - M0: repository foundation, Go executable, minimal IRC wire client, Tengo proof of concept, tests and CI.

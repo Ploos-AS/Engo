@@ -227,3 +227,27 @@ func TestManagerDisableRejectsDirectoryNamedTengo(t *testing.T) {
 		t.Fatalf("directory changed disabled state: %v", disabled)
 	}
 }
+
+
+func TestManagerReloadRejectsMissingScript(t *testing.T) {
+	dir := t.TempDir()
+	writeScript(t, filepath.Join(dir, "good.tengo"), `bot("command","ok","ok")`)
+	m := NewManager(dir, bot.New(&captureSender{}))
+	if err := m.ReloadAll(); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Reload("missing.tengo"); err == nil {
+		t.Fatal("expected missing script error")
+	}
+}
+
+func TestManagerReloadRejectsDirectoryNamedTengo(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "nested.tengo"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	m := NewManager(dir, bot.New(&captureSender{}))
+	if err := m.Reload("nested.tengo"); err == nil {
+		t.Fatal("expected directory rejection")
+	}
+}

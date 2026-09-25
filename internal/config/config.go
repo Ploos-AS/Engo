@@ -66,6 +66,7 @@ func FromEnv() Config {
 
 func (c Config) Validate() error {
 	if err:=validateCapabilities(c.ScriptCapabilitiesRaw);err!=nil{return err}
+	if err:=validateScriptCapabilityNames(c.ScriptCapabilitiesRaw);err!=nil{return err}
 	if err:=validatePermissions(c.AccountPermissionsRaw);err!=nil{return err}
 	if err:=validateCommandPermissions(c.CommandPermissionsRaw);err!=nil{return err}
 	if c.ScriptMaxAllocs <= 0 { return fmt.Errorf("ENGO_SCRIPT_MAX_ALLOCS must be positive") }
@@ -147,3 +148,17 @@ func validatePermissionName(name string)error{name=strings.TrimSpace(name);if na
 
 func validateAccountName(name string)error{name=strings.TrimSpace(name);if name==""||len(name)>64{return fmt.Errorf("invalid IRC account name %q",name)};for _,r:=range name{if (r>='a'&&r<='z')||(r>='A'&&r<='Z')||(r>='0'&&r<='9')||strings.ContainsRune("-_.",r){continue};return fmt.Errorf("invalid IRC account name %q",name)};return nil}
 func validateCommandName(name string)error{name=strings.TrimSpace(name);if name==""||len(name)>64{return fmt.Errorf("invalid command name %q",name)};for _,r:=range name{if (r>='a'&&r<='z')||(r>='0'&&r<='9')||r=='-'||r=='_'{continue};return fmt.Errorf("invalid command name %q",name)};return nil}
+
+func validateScriptCapabilityNames(raw string)error{
+	raw=strings.TrimSpace(raw);if raw==""{return nil}
+	for _,entry:=range strings.Split(raw,","){
+		name:=strings.TrimSpace(strings.SplitN(entry,":",2)[0])
+		if strings.ContainsAny(name,"/\\")||name=="."||name==".."||strings.Contains(name,".."){
+			return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",name)
+		}
+		base:=strings.TrimSuffix(name,".tengo")
+		if base==""{return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",name)}
+		for _,r:=range base{if (r>='a'&&r<='z')||(r>='A'&&r<='Z')||(r>='0'&&r<='9')||r=='-'||r=='_'||r=='.'{continue};return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",name)}
+	}
+	return nil
+}

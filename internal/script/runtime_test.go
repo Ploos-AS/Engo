@@ -119,3 +119,18 @@ func TestAccountNotifyEventObject(t *testing.T){
 		if obj["account"]!=tc.want{t.Fatalf("%q: account=%#v, want %q",tc.line,obj["account"],tc.want)}
 	}
 }
+
+func TestAccountNotifyIdentityPersistsToMessages(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"account.tengo")
+	writeScript(t,path,`bot("command","who","who")
+if bot("active","who") { bot("say",event["target"],event["account"]) }`)
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b)
+	if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if sender.text!="alice-account"{t.Fatalf("persisted account=%q",sender.text)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT *"));err!=nil{t.Fatal(err)}
+	sender.text="sentinel"
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+	if sender.text!=""{t.Fatalf("account should be cleared after logout, got %q",sender.text)}
+}

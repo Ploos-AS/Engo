@@ -173,3 +173,18 @@ if bot("active","get"){
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
 	if _,text:=s.snapshot();text!="persisted"{t.Fatalf("store state did not survive disable/enable: %q",text)}
 }
+
+
+func TestManagerConcurrentPolicyUpdateAndReload(t *testing.T){
+ dir:=t.TempDir()
+ writeScript(t,filepath.Join(dir,"policy.tengo"),`bot("command","reload","reload")
+if bot("active","reload"){bot("say",event["target"],"ran")}`)
+ b:=bot.New(&captureSender{});m:=NewManager(dir,b)
+ m.SetPermissions(map[string][]string{"alice":{"admin"}})
+ m.SetCommandPermissions(map[string]string{"reload":"admin"})
+ if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+ done:=make(chan struct{})
+ go func(){defer close(done);for i:=0;i<100;i++{m.SetPermissions(map[string][]string{"alice":{"admin"}});m.SetCommandPermissions(map[string]string{"reload":"admin"})}}()
+ for i:=0;i<25;i++{if err:=m.ReloadAll();err!=nil{t.Fatal(err)}}
+ <-done
+}

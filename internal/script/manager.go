@@ -118,12 +118,17 @@ func (m *Manager) reloadCurrent() error {
 
 func (m *Manager) activate(paths []string) error {
 	reg:=bot.NewRegistry();next:=make(map[string]*Runtime,len(paths))
+	m.mu.RLock()
+	capabilities:=copyCapabilities(m.capabilities)
+	permissions:=copyPermissions(m.permissions)
+	commandPermissions:=copyCommandPermissions(m.commandPermissions)
+	m.mu.RUnlock()
 	for _,path:=range paths{
 		rt:=NewLimited(path,m.bot,m.maxAllocs)
 		rt.SetStore(NewStore(m.stateDir,scriptNamespace(path)))
 		rt.SetHTTP(NewHTTPClient(m.httpHosts,m.httpTimeout,m.httpMaxBody))
-		rt.SetCapabilities(m.scriptCapabilities(path))
-		m.mu.RLock();permissions:=copyPermissions(m.permissions);commandPermissions:=copyCommandPermissions(m.commandPermissions);m.mu.RUnlock();rt.SetPermissions(permissions);rt.SetCommandPermissions(commandPermissions)
+		rt.SetCapabilities(capabilities[filepath.Base(path)])
+		rt.SetPermissions(permissions);rt.SetCommandPermissions(commandPermissions)
 		src,err:=os.ReadFile(path);if err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		rt.src=append([]byte(nil),src...);next[path]=rt
@@ -146,6 +151,9 @@ func (m *Manager) Disabled()[]string{
 	for name,off:=range m.disabled{if off{out=append(out,name)}};sort.Strings(out);return out
 }
 func (m *Manager) isDisabled(name string)bool{m.mu.RLock();defer m.mu.RUnlock();return m.disabled[name]}
+func copyCapabilities(in map[string]Capabilities)map[string]Capabilities{
+ out:=make(map[string]Capabilities,len(in));for name,capabilities:=range in{out[name]=capabilities};return out
+}
 func copyPermissions(in map[string][]string)map[string][]string{
  out:=make(map[string][]string,len(in));for account,perms:=range in{out[account]=append([]string(nil),perms...)};return out
 }

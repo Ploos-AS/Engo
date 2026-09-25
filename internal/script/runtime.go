@@ -105,10 +105,10 @@ func (r *Runtime) eventCallFor(active string,currentEvent bot.Event)func(...teng
 		default:return nil,fmt.Errorf("unknown bot operation %q",op)}
 	}
 }
-func (r *Runtime) allowed(ev bot.Event,perm string)bool{account:=strings.ToLower(eventAccount(ev));return account!=""&&r.permissions[account][strings.ToLower(strings.TrimSpace(perm))]}
+func (r *Runtime) allowed(ev bot.Event,perm string)bool{if !ev.AccountVerified{return false};account:=strings.ToLower(eventAccount(ev));return account!=""&&r.permissions[account][strings.ToLower(strings.TrimSpace(perm))]}
 func (r *Runtime) currentSource()[]byte{r.mu.RLock();defer r.mu.RUnlock();return append([]byte(nil),r.src...)}
 func (r *Runtime) Stop(){r.scheduler.CancelAll()}
-func eventObject(ev bot.Event)map[string]interface{}{args:=make([]interface{},len(ev.Args));for i,a:=range ev.Args{args[i]=a};tags:=make(map[string]interface{},len(ev.Message.Tags));for k,v:=range ev.Message.Tags{tags[k]=v};return map[string]interface{}{"name":ev.Name,"nick":ev.Nick,"target":ev.Target,"text":ev.Text,"command":ev.Command,"args":args,"tags":tags,"time":ev.Message.Tags["time"],"account":eventAccount(ev),"realname":ev.RealName}}
+func eventObject(ev bot.Event)map[string]interface{}{args:=make([]interface{},len(ev.Args));for i,a:=range ev.Args{args[i]=a};tags:=make(map[string]interface{},len(ev.Message.Tags));for k,v:=range ev.Message.Tags{tags[k]=v};return map[string]interface{}{"name":ev.Name,"nick":ev.Nick,"target":ev.Target,"text":ev.Text,"command":ev.Command,"args":args,"tags":tags,"time":ev.Message.Tags["time"],"account":eventAccount(ev),"account_verified":ev.AccountVerified,"realname":ev.RealName}}
 func eventAccount(ev bot.Event)string{if ev.Account!=""{return ev.Account};return ev.Message.Tags["account"]}
 func scriptNamespace(path string)string{return strings.TrimSuffix(filepath.Base(path),filepath.Ext(path))}
 type discardSender struct{}

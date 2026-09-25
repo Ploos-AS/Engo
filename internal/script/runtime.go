@@ -67,6 +67,13 @@ func (r *Runtime) runHandler(src []byte,id string,ev bot.Event)error{
 	s:=tengo.NewScript(src);s.SetMaxAllocs(r.maxAllocs)
 	if err:=s.Add("event",eventObject(ev));err!=nil{return err}
 	if err:=s.Add("bot",&tengo.UserFunction{Name:"bot",Value:r.eventCallFor(id,ev)});err!=nil{return err}
+	call:=r.eventCallFor(id,ev)
+	for _,name:=range []string{"kv_get","kv_set","kv_delete"}{
+		op:=name
+		if err:=s.Add(name,&tengo.UserFunction{Name:name,Value:func(args ...tengo.Object)(tengo.Object,error){
+			return call(append([]tengo.Object{&tengo.String{Value:op}},args...)...)
+		}});err!=nil{return err}
+	}
 	if _,err:=s.Run();err!=nil{return fmt.Errorf("Tengo handler %s: %w",id,err)};return nil
 }
 func (r *Runtime) eventCall(active string)func(...tengo.Object)(tengo.Object,error){

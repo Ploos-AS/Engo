@@ -39,7 +39,7 @@ func (m *Manager) ReloadAll() error {
 	reg := bot.NewRegistry()
 	next := make(map[string]*Runtime, len(paths))
 	for _, path := range paths {
-		rt := New(path, m.bot)
+		rt := NewLimited(path, m.bot, m.maxAllocs)
 		src, err := os.ReadFile(path)
 		if err != nil { return fmt.Errorf("%s: %w", filepath.Base(path), err) }
 		if err := rt.prepare(src, &reg); err != nil { return fmt.Errorf("%s: %w", filepath.Base(path), err) }

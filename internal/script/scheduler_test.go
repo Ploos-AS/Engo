@@ -1,7 +1,7 @@
 package script
 
 import (
-	"sync/atomic"
+	"fmt"\n\t"sync/atomic"
 	"testing"
 	"time"
 )
@@ -39,4 +39,13 @@ func TestSchedulerReplacingTimerStopsOld(t *testing.T){
 	select{case<-done:case<-time.After(time.Second):t.Fatal("replacement timer did not fire")}
 	time.Sleep(1100*time.Millisecond)
 	if old.Load(){t.Fatal("replaced timer fired")}
+}
+
+func TestSchedulerTimerLimit(t *testing.T){
+	s:=NewScheduler()
+	for i:=0;i<maxActiveTimers;i++{
+		if err:=s.After(fmt.Sprintf("timer-%d",i),time.Hour,func(){});err!=nil{t.Fatalf("timer %d: %v",i,err)}
+	}
+	if err:=s.After("overflow",time.Hour,func(){});err==nil{t.Fatal("expected timer limit error")}
+	s.CancelAll()
 }

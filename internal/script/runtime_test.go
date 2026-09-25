@@ -3,7 +3,6 @@ package script
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -85,7 +84,7 @@ func TestHTTPCapabilityGrantReachesHTTPPolicy(t *testing.T){
 	path:=filepath.Join(t.TempDir(),"http-grant.tengo")
 	writeScript(t,path,`bot("command","fetch","fetch")
 if bot("active","fetch") { bot("http_get","http://example.com/") }`)
-	b:=bot.New(&captureSender{});rt:=New(path,b)
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b)
 	rt.SetHTTP(NewHTTPClient([]string{"example.com"},time.Second,1024))
 	rt.SetCapabilities(Capabilities{HTTP:true})
 	if err:=rt.Load();err!=nil{t.Fatal(err)}

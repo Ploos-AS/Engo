@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/Ploos-AS/Engo/internal/bot"
 	"github.com/Ploos-AS/Engo/internal/irc"
@@ -89,4 +90,23 @@ if bot("active","one"){bot("say",event["target"],"old")}`)
 	if err:=os.WriteFile(one,[]byte("{{ invalid"),0o600);err!=nil{t.Fatal(err)}
 	if err:=m.Enable("two.tengo");err==nil{t.Fatal("expected enable reload failure")}
 	if got:=m.Disabled();len(got)!=1||got[0]!="two.tengo"{t.Fatalf("disabled state not rolled back: %v",got)}
+}
+
+func TestManagerFailedReloadKeepsOldTimers(t *testing.T){
+	dir:=t.TempDir()
+	path:=filepath.Join(dir,"timer.tengo")
+	writeScript(t,path,`bot("command","start","start")
+if bot("active","start"){bot("timer_after","1s","fired")}
+if bot("active","fired"){bot("say",event["target"],"timer-fired")}`)
+	s:=&captureSender{};b:=bot.New(s);m:=NewManager(dir,b)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!start"))
+	if err:=os.WriteFile(path,[]byte("{{ invalid"),0o600);err!=nil{t.Fatal(err)}
+	if err:=m.ReloadAll();err==nil{t.Fatal("expected reload failure")}
+	deadline:=time.Now().Add(2*time.Second)
+	for time.Now().Before(deadline){
+		if s.text=="timer-fired"{return}
+		time.Sleep(20*time.Millisecond)
+	}
+	t.Fatal("old generation timer was lost after failed reload")
 }

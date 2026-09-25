@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Ploos-AS/Engo/internal/bot"
 )
@@ -16,6 +17,9 @@ type Manager struct {
 	bot *bot.Bot
 	maxAllocs int64
 	stateDir string
+	httpHosts []string
+	httpTimeout time.Duration
+	httpMaxBody int64
 	mu sync.RWMutex
 	runtimes map[string]*Runtime
 	disabled map[string]bool
@@ -24,7 +28,7 @@ type Manager struct {
 func NewManager(dir string,b *bot.Bot)*Manager{return NewManagerLimited(dir,b,100000)}
 func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{return NewManagerWithState(dir,b,maxAllocs,"")}
 func NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*Manager{
-	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
+	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,httpTimeout:10*time.Second,httpMaxBody:262144,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
 }
 
 func (m *Manager) ReloadAll() error {
@@ -89,6 +93,7 @@ func (m *Manager) activate(paths []string) error {
 	for _,path:=range paths{
 		rt:=NewLimited(path,m.bot,m.maxAllocs)
 		rt.SetStore(NewStore(m.stateDir,scriptNamespace(path)))
+		rt.SetHTTP(NewHTTPClient(m.httpHosts,m.httpTimeout,m.httpMaxBody))
 		src,err:=os.ReadFile(path);if err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		if err:=rt.prepare(src,&reg);err!=nil{return fmt.Errorf("%s: %w",filepath.Base(path),err)}
 		rt.src=append([]byte(nil),src...);next[path]=rt

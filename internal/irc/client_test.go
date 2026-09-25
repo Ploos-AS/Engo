@@ -527,3 +527,28 @@ func TestDialRejectsRegistrationLineBreaks(t *testing.T) {
 		}
 	}
 }
+
+
+func TestMessageTargetsCannotInjectIRCLines(t *testing.T) {
+	clientConn, serverConn := net.Pipe()
+	defer clientConn.Close()
+	defer serverConn.Close()
+	c := &Client{conn: clientConn}
+	done := make(chan error, 1)
+	go func() { done <- c.Say("#engo\r\nOPER root", "hello") }()
+	buf := make([]byte, 256)
+	n, err := serverConn.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	got := string(buf[:n])
+	if strings.Contains(got, "\r\nOPER root") {
+		t.Fatalf("target allowed IRC line injection: %q", got)
+	}
+	if !strings.Contains(got, "PRIVMSG #engo  OPER root :hello\r\n") {
+		t.Fatalf("unexpected sanitized frame: %q", got)
+	}
+}

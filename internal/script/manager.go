@@ -21,9 +21,7 @@ type Manager struct {
 }
 
 func NewManager(dir string,b *bot.Bot)*Manager{return NewManagerLimited(dir,b,100000)}
-func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{
-	return &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}
-}
+func NewManagerLimited(dir string,b *bot.Bot,maxAllocs int64)*Manager{return NewManagerWithState(dir,b,maxAllocs,"")}\nfunc NewManagerWithState(dir string,b *bot.Bot,maxAllocs int64,stateDir string)*Manager{\n\treturn &Manager{dir:dir,bot:b,maxAllocs:maxAllocs,stateDir:stateDir,runtimes:make(map[string]*Runtime),disabled:make(map[string]bool)}\n}
 
 func (m *Manager) ReloadAll() error {
 	entries,err:=os.ReadDir(m.dir); if err!=nil{return fmt.Errorf("read scripts directory: %w",err)}

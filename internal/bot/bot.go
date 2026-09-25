@@ -21,6 +21,8 @@ type Event struct {
 	Text string
 	Command string
 	Args []string
+	Account string
+	RealName string
 	Message irc.Message
 }
 
@@ -113,6 +115,8 @@ func eventFromMessage(m irc.Message) Event {
 	case "JOIN":
 		ev.Name = "join"
 		if ev.Target == "" { ev.Target = m.Trailing }
+		if len(m.Params)>=2 { ev.Account=m.Params[1]; if ev.Account=="*"{ev.Account=""} }
+		if len(m.Params)>=3 { ev.RealName=m.Params[2] } else if len(m.Params)>=2 { ev.RealName=m.Trailing }
 	case "PART": ev.Name = "part"
 	case "NOTICE": ev.Name = "notice"
 	default:

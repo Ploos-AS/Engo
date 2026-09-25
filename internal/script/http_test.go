@@ -103,3 +103,10 @@ func TestHTTPResponseWithinBodyLimit(t *testing.T){
 	if res["body"]!="12345"{t.Fatalf("unexpected body: %v",res["body"])}
 	if res["status"]!=int64(200){t.Fatalf("unexpected status: %v",res["status"])}
 }
+
+func TestHTTPRejectsHostWithNoAddresses(t *testing.T){
+	h:=NewHTTPClient([]string{"allowed.example"},time.Second,1024)
+	h.lookupIP=func(string)([]net.IP,error){return []net.IP{},nil}
+	u,_:=url.Parse("https://allowed.example/")
+	if err:=h.validateURL(u);err==nil{t.Fatal("expected empty DNS result rejection")}
+}

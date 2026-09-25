@@ -144,3 +144,12 @@ func TestAccountLearnedWithoutUserhostIsNotReusable(t *testing.T){
 	if err:=b.Handle(irc.ParseMessage(":alice PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
 	if got!=""{t.Fatalf("unbound account identity was reused: %q",got)}
 }
+
+
+func TestAccountTagWithoutUserhostIsNotVerified(t *testing.T){
+ b:=New(&testSender{});var got Event
+ b.Command("who",func(ev Event)error{got=ev;return nil})
+ if err:=b.Handle(irc.ParseMessage("@account=alice-account :alice PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+ if got.Account!=""{t.Fatalf("account-tag without userhost exposed account %q",got.Account)}
+ if got.AccountVerified{t.Fatal("account-tag without userhost was marked verified")}
+}

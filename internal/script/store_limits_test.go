@@ -63,7 +63,7 @@ func TestStoreConcurrentProcesses(t *testing.T){
 		cmd:=exec.Command(os.Args[0],"-test.run=^TestStoreCrossProcessHelper$")
 		cmd.Env=append(os.Environ(),"ENGO_STORE_HELPER=1","ENGO_STORE_ROOT="+root,"ENGO_STORE_KEY="+key)
 		if err:=cmd.Start();err!=nil{t.Fatal(err)}
-		cmds=append(cmds,*cmd)
+		cmds=append(cmds,cmd)
 	}
 	for i:=range cmds{if err:=cmds[i].Wait();err!=nil{t.Fatalf("helper process failed: %v",err)}}
 	s:=NewStore(root,"shared")

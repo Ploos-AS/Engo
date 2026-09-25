@@ -37,7 +37,7 @@ Raw IRC writes, filesystem access and network access outside declared capabiliti
 ## Milestones
 
 - M0: repository foundation, Go executable, minimal IRC wire client, Tengo proof of concept, tests and CI.
-- M1: robust IRC connection lifecycle, reconnect/backoff, TLS/SASL and configuration validation.
+- M1: robust IRC connection lifecycle, reconnect/backoff, TLS/SASL and configuration validation. **Implemented.**
 - M2: Tengo event and command API.
 - M3: script lifecycle, isolation and hot reload.
 - M4: persistence, timers and capability-scoped HTTP.

@@ -40,7 +40,7 @@ Raw IRC writes, filesystem access and network access outside declared capabiliti
 - M1: robust IRC connection lifecycle, reconnect/backoff, TLS/SASL and configuration validation. **Implemented.**
 - M2: Tengo event and command API. **Implemented (initial API).**
 - M3: script lifecycle, isolation and hot reload. **Implemented:** transactional reload, multi-script management, handler failure containment, allocation limits and per-script enable/disable/reload lifecycle.
-- M4: persistence, timers and capability-scoped HTTP.
+- M4: persistence, timers and capability-scoped HTTP. **In progress:** namespaced persistent KV state and script-owned one-shot timers implemented.
 - M5: IRCv3 and permissions/ACL model.
 - M6: production OCI/release pipeline and operational documentation.
 
@@ -57,3 +57,12 @@ Output capabilities are `bot("say", target, text)`, `bot("notice", target, text)
 The active script is replaced transactionally. Engo first reads and evaluates the candidate into a fresh handler registry; only a successful candidate becomes active. A failed reload leaves the previous handlers untouched. On Unix-like systems, SIGHUP requests reload without dropping the IRC connection.
 
 Runtime errors from an event or command handler are contained at the bot boundary and logged rather than terminating the IRC session. A managed multi-script directory is now supported through `ENGO_SCRIPTS_DIR`; all candidate scripts are validated before the active registry is replaced, so one broken script rolls back the complete reload. Tengo execution has an allocation budget, and the manager exposes per-script `Enable`, `Disable` and `Reload` lifecycle operations. Script names are constrained to local `.tengo` filenames to prevent path traversal.
+
+
+## M4 services
+
+Persistent state is namespaced per script and exposed through `bot("kv_get", key)`, `bot("kv_set", key, value)` and `bot("kv_delete", key)`.
+
+Scripts can schedule one-shot callbacks with `bot("timer_after", duration, handler_id)` and cancel them with `bot("timer_cancel", handler_id)`. Timer durations use Go-style values such as `"5s"` and `"2m"`. Timers belong to their runtime and are cancelled when that runtime is replaced or disabled, preventing stale script code from firing after lifecycle changes.
+
+HTTP remains an explicit, disabled-by-default capability planned for the next M4 step.

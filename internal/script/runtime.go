@@ -46,8 +46,10 @@ func (r *Runtime) prepare(src []byte,reg *bot.Registry)error{
 	s:=tengo.NewScript(src);s.SetMaxAllocs(r.maxAllocs)
 	if err:=s.Add("bot",&tengo.UserFunction{Name:"bot",Value:r.registrationCall(src,reg)});err!=nil{return err}
 	if err:=s.Add("event",eventObject(bot.Event{}));err!=nil{return err}
+	for _,name:=range []string{"kv_get","kv_set","kv_delete"}{if err:=s.Add(name,&tengo.UserFunction{Name:name,Value:r.registrationBuiltin(name)});err!=nil{return err}}
 	if _,err:=s.Run();err!=nil{return fmt.Errorf("run script: %w",err)};return nil
 }
+func (r *Runtime) registrationBuiltin(name string)func(...tengo.Object)(tengo.Object,error){return func(args ...tengo.Object)(tengo.Object,error){return tengo.UndefinedValue,nil}}
 func (r *Runtime) registrationCall(src []byte,reg *bot.Registry)func(...tengo.Object)(tengo.Object,error){
 	return func(args ...tengo.Object)(tengo.Object,error){
 		if len(args)<1{return nil,tengo.ErrWrongNumArguments};op,ok:=tengo.ToString(args[0]);if !ok{return nil,fmt.Errorf("bot operation must be a string")}

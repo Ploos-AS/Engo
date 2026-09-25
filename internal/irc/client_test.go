@@ -311,3 +311,16 @@ func TestRunRejectsUnexpectedSASLFailureNumerics(t *testing.T){
   })
  }
 }
+
+
+func TestRunRejectsCAPACKBeforeRequest(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}()
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :account-tag");err!=nil{t.Fatal(err)}
+ select{
+ case err:=<-errCh:
+  if err==nil||!strings.Contains(err.Error(),"unexpected CAP ACK before CAP REQ"){t.Fatalf("Run() error=%v",err)}
+ case <-time.After(time.Second):t.Fatal("Run() did not reject CAP ACK before CAP REQ")
+ }
+}

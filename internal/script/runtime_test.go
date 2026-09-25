@@ -183,3 +183,26 @@ if bot("active","reload") { bot("say",event["target"],"ran") }`)
 	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
 	if sender.text!="ran"{t.Fatalf("authorized protected command did not run: %q",sender.text)}
 }
+
+
+func TestProtectedCommandRejectsUnverifiedAccountName(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"unverified.tengo")
+	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b)
+	rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
+	ev:=bot.Event{Name:"message",Nick:"alice",Target:"#engo",Text:"!reload",Account:"alice-account",AccountVerified:false,Message:irc.ParseMessage(":alice PRIVMSG #engo :!reload")}
+	if rt.allowed(ev,"admin"){t.Fatal("unverified account name granted permission")}
+}
+
+func TestAccountTagGrantsProtectedCommand(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"tagged-protected.tengo")
+	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage("@account=alice-account :alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="ran"{t.Fatalf("verified account-tag did not authorize protected command: %q",sender.text)}
+}
+
+func TestEventObjectExposesAccountVerification(t *testing.T){
+	ev:=bot.Event{Name:"message",Account:"alice-account",AccountVerified:true};obj:=eventObject(ev)
+	if obj["account_verified"]!=true{t.Fatalf("account_verified=%#v",obj["account_verified"])}
+}

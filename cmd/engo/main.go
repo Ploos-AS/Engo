@@ -28,7 +28,7 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	pbstate := pbmp.NewState(cfg.Nick, cfg.Server)
+	pbstate := pbmp.NewState(cfg.Nick, cfg.Server, cfg.Channels...)
 	if cfg.PBMPSocket != "" {
 		go func() {
 			if err := pbmp.Serve(cfg.PBMPSocket, pbstate); err != nil {

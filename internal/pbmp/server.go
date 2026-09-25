@@ -11,10 +11,11 @@ import (
 
 type State struct {
 	Nick, Network string
+	Channels []string
 	connected     atomic.Bool
 }
 
-func NewState(nick, network string) *State { return &State{Nick: nick, Network: network} }
+func NewState(nick, network string, channels ...string) *State { return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...)} }
 func (s *State) SetConnected(v bool)       { s.connected.Store(v) }
 func (s *State) Connected() bool           { return s.connected.Load() }
 
@@ -46,13 +47,19 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	case "pbmp.info":
 		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
 	case "capabilities.list":
-		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list"}}
+		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list"}}
 	case "bot.info":
 		state := "offline"
 		if s.Connected() {
 			state = "online"
 		}
 		r.Result = map[string]any{"implementation": "engo", "version": "0.1.0", "nick": s.Nick, "state": state}
+	case "channels.list":
+		state := "disconnected"
+		if s.Connected() { state = "configured" }
+		channels := make([]any, 0, len(s.Channels))
+		for _, name := range s.Channels { channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": state}) }
+		r.Result = map[string]any{"channels": channels}
 	case "networks.list":
 		state := "disconnected"
 		if s.Connected() {

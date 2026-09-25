@@ -47,7 +47,7 @@ func runIRC(ctx context.Context, cfg config.Config) error {
 	defer client.Close()
 
 	b := bot.New(client)
-	rt := script.New(cfg.Script, b)
+	rt := script.NewLimited(cfg.Script, b, cfg.ScriptMaxAllocs)
 	if err := rt.Load(); err != nil { return err }
 	client.OnMessage(b.Handle)
 

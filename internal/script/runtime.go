@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Ploos-AS/Engo/internal/bot"
 	"github.com/d5/tengo/v2"
@@ -19,13 +20,15 @@ type Runtime struct {
 	maxAllocs int64
 	store *Store
 	scheduler *Scheduler
+	http *HTTPClient
 }
 
 func New(path string,b *bot.Bot)*Runtime{return NewLimited(path,b,100000)}
 func NewLimited(path string,b *bot.Bot,maxAllocs int64)*Runtime{
-	return &Runtime{path:path,bot:b,maxAllocs:maxAllocs,store:NewStore("",scriptNamespace(path)),scheduler:NewScheduler()}
+	return &Runtime{path:path,bot:b,maxAllocs:maxAllocs,store:NewStore("",scriptNamespace(path)),scheduler:NewScheduler(),http:NewHTTPClient(nil,10*time.Second,262144)}
 }
 func (r *Runtime) SetStore(s *Store){r.store=s}
+func (r *Runtime) SetHTTP(h *HTTPClient){r.http=h}
 func (r *Runtime) Load()error{return r.Reload()}
 func (r *Runtime) Reload()error{
 	src,err:=os.ReadFile(r.path);if err!=nil{return fmt.Errorf("read script: %w",err)}
@@ -77,6 +80,8 @@ func (r *Runtime) eventCall(active string)func(...tengo.Object)(tengo.Object,err
 			return tengo.UndefinedValue,nil
 		case "timer_cancel":
 			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};id,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("timer id must be string")};return tengo.FromInterface(r.scheduler.Cancel(active+":"+id))
+		case "http_get":
+			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};raw,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("http_get URL must be string")};if !r.http.Enabled(){return nil,fmt.Errorf("HTTP capability is disabled")};res,err:=r.http.Get(raw);if err!=nil{return nil,err};return tengo.FromInterface(res)
 		case "kv_get":
 			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};key,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("kv key must be string")};v,found,err:=r.store.Get(key);if err!=nil{return nil,err};if !found{return tengo.UndefinedValue,nil};return tengo.FromInterface(v)
 		case "kv_set":

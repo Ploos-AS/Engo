@@ -226,3 +226,40 @@ func TestAccountNotifyCacheDifferentUserhostDenied(t *testing.T){
 	if err:=b.Handle(irc.ParseMessage(":alice!new@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
 	if sender.text!="untouched"{t.Fatalf("stale account-notify identity authorized command: %q",sender.text)}
 }
+
+
+func TestExtendedJoinCacheGrantsProtectedCommand(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"join-protected.tengo")
+	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example JOIN #engo alice-account :Alice Example"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="ran"{t.Fatalf("extended-join identity did not authorize protected command: %q",sender.text)}
+}
+
+func TestAccountLogoutRevokesProtectedCommand(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"logout-protected.tengo")
+	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT *"));err!=nil{t.Fatal(err)}
+	sender.text="untouched";if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="untouched"{t.Fatalf("logout did not revoke protected command: %q",sender.text)}
+}
+
+func TestQuitRevokesProtectedCommand(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"quit-protected.tengo")
+	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)};if err:=b.Handle(irc.ParseMessage(":alice!u@example QUIT :bye"));err!=nil{t.Fatal(err)}
+	sender.text="untouched";if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="untouched"{t.Fatalf("QUIT did not revoke protected command: %q",sender.text)}
+}
+
+func TestNickChangeKeepsProtectedCommandForSameUserhost(t *testing.T){
+	path:=filepath.Join(t.TempDir(),"nick-protected.tengo")
+	writeScript(t,path,"bot(\"command\",\"reload\",\"reload\")\nif bot(\"active\",\"reload\") { bot(\"say\",event[\"target\"],\"ran\") }")
+	sender:=&captureSender{};b:=bot.New(sender);rt:=New(path,b);rt.SetPermissions(map[string][]string{"alice-account":{"admin"}});rt.SetCommandPermissions(map[string]string{"reload":"admin"});if err:=rt.Load();err!=nil{t.Fatal(err)}
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)};if err:=b.Handle(irc.ParseMessage(":alice!u@example NICK :alice2"));err!=nil{t.Fatal(err)};if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if sender.text!="ran"{t.Fatalf("same-userhost nick change lost authorization: %q",sender.text)}
+}

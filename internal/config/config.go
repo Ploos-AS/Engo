@@ -112,14 +112,16 @@ func capabilityEnv(key string)map[string][]string{
 
 func validateCapabilities(raw string)error{
 	raw=strings.TrimSpace(raw);if raw==""{return nil}
+	seen:=make(map[string]bool)
 	for _,entry:=range strings.Split(raw,","){
 		entry=strings.TrimSpace(entry);parts:=strings.SplitN(entry,":",2)
 		if len(parts)!=2||strings.TrimSpace(parts[0])==""||strings.TrimSpace(parts[1])==""{return fmt.Errorf("invalid ENGO_SCRIPT_CAPABILITIES entry %q",entry)}
-		if !strings.HasSuffix(strings.TrimSpace(parts[0]),".tengo"){return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",parts[0])}
+		name:=strings.TrimSpace(parts[0]);if !strings.HasSuffix(name,".tengo"){return fmt.Errorf("invalid script name in ENGO_SCRIPT_CAPABILITIES: %q",parts[0])};if seen[name]{return fmt.Errorf("duplicate script in ENGO_SCRIPT_CAPABILITIES: %q",name)};seen[name]=true
+		capsSeen:=make(map[string]bool)
 		for _,capability:=range strings.Split(parts[1],"+"){
 			capability=strings.ToLower(strings.TrimSpace(capability))
 			if capability==""{return fmt.Errorf("empty capability in ENGO_SCRIPT_CAPABILITIES entry %q",entry)}
-			if capability!="http"{return fmt.Errorf("unknown script capability %q",capability)}
+			if capability!="http"{return fmt.Errorf("unknown script capability %q",capability)};if capsSeen[capability]{return fmt.Errorf("duplicate capability %q for script %q",capability,name)};capsSeen[capability]=true
 		}
 	}
 	return nil

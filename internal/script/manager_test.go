@@ -273,3 +273,20 @@ if bot("active","one"){bot("say",event["target"],"new-one")}`)
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!one"))
 	if _, text := s.snapshot(); text != "old-one" { t.Fatalf("old registry not preserved: %q", text) }
 }
+
+
+func TestCopyCapabilitiesDoesNotAliasMap(t *testing.T) {
+	original := map[string]Capabilities{
+		"weather.tengo": {HTTP: true},
+	}
+	snapshot := copyCapabilities(original)
+	original["weather.tengo"] = Capabilities{}
+	original["other.tengo"] = Capabilities{HTTP: true}
+
+	if !snapshot["weather.tengo"].HTTP {
+		t.Fatal("capability snapshot changed when source map was mutated")
+	}
+	if _, ok := snapshot["other.tengo"]; ok {
+		t.Fatal("capability snapshot aliased source map")
+	}
+}

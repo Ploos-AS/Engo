@@ -150,3 +150,26 @@ if bot("active","get"){
 	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
 	if s.text!="persisted"{t.Fatalf("store state did not survive reload: %q",s.text)}
 }
+
+func TestManagerStorePersistsAcrossDisableEnable(t *testing.T){
+	dir:=t.TempDir()
+	stateDir:=t.TempDir()
+	path:=filepath.Join(dir,"state.tengo")
+	writeScript(t,path,`bot("command","set","set")
+bot("command","get","get")
+if bot("active","set"){kv_set("value","persisted")}
+if bot("active","get"){
+	v := kv_get("value")
+	bot("say",event["target"],v)
+}`)
+	s:=&captureSender{};b:=bot.New(s);m:=NewManagerWithState(dir,b,100000,stateDir)
+	if err:=m.ReloadAll();err!=nil{t.Fatal(err)}
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!set"))
+	if err:=m.Disable("state.tengo");err!=nil{t.Fatal(err)}
+	s.text=""
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
+	if s.text!=""{t.Fatalf("disabled script still handled command: %q",s.text)}
+	if err:=m.Enable("state.tengo");err!=nil{t.Fatal(err)}
+	_ = b.Handle(irc.ParseMessage(":a!u@h PRIVMSG #x :!get"))
+	if s.text!="persisted"{t.Fatalf("store state did not survive disable/enable: %q",s.text)}
+}

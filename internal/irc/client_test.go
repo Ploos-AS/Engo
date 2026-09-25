@@ -199,3 +199,23 @@ func TestCapabilityNEWDoesNotEnableCapability(t *testing.T){
 	if err==nil&&strings.Contains(string(buf[:n]),"CAP REQ"){t.Fatalf("CAP NEW silently enabled capability")}
 	_ = clientConn.Close();<-done
 }
+
+
+func TestSanitizeTextRemovesIRCLineBreaks(t *testing.T){
+	got:=sanitizeText("hello\r\nOPER root\nworld")
+	if strings.ContainsAny(got,"\r\n"){t.Fatalf("sanitizeText retained line break: %q",got)}
+	if got!="hello  OPER root world"{t.Fatalf("unexpected sanitized text: %q",got)}
+}
+
+func TestActionUsesCTCPFramingAndSanitizesText(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
+	c:=&Client{conn:clientConn}
+	done:=make(chan error,1)
+	go func(){done<-c.Action("#engo","waves\r\nPRIVMSG #other :oops")}()
+	buf:=make([]byte,256);n,err:=serverConn.Read(buf);if err!=nil{t.Fatal(err)}
+	if err:=<-done;err!=nil{t.Fatal(err)}
+	got:=string(buf[:n])
+	want:="PRIVMSG #engo :\x01ACTION waves  PRIVMSG #other :oops\x01\r\n"
+	if got!=want{t.Fatalf("Action frame=%q want %q",got,want)}
+	if strings.Contains(got,"\r\nPRIVMSG #other"){t.Fatal("Action allowed IRC line injection")}
+}

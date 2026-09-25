@@ -22,10 +22,61 @@ type State struct {
 func NewState(nick, network string, channels ...string) *State {
 	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool)}
 }
-func (s *State) SetConnected(v bool) { s.connected.Store(v); if !v { s.mu.Lock(); clear(s.joined); s.mu.Unlock() } }
-func (s *State) Observe(command, nick string, params []string, trailing string) { if !strings.EqualFold(nick,s.Nick) && command!="KICK" { return }; var ch string; switch command { case "JOIN": if len(params)>0 { ch=params[0] } else { ch=trailing }; if strings.EqualFold(nick,s.Nick)&&ch!="" { s.mu.Lock(); s.joined[strings.ToLower(ch)]=true; s.mu.Unlock() }; case "PART": if len(params)>0 { ch=params[0] }; if strings.EqualFold(nick,s.Nick)&&ch!="" { s.mu.Lock(); delete(s.joined,strings.ToLower(ch)); s.mu.Unlock() }; case "KICK": if len(params)>=2&&strings.EqualFold(params[1],s.Nick) { s.mu.Lock(); delete(s.joined,strings.ToLower(params[0])); s.mu.Unlock() } } }
-func (s *State) ChannelState(name string) string { if !s.Connected(){return "disconnected"}; s.mu.RLock(); joined:=s.joined[strings.ToLower(name)]; s.mu.RUnlock(); if joined{return "joined"}; return "joining" }
-func (s *State) Connected() bool     { return s.connected.Load() }
+func (s *State) SetConnected(v bool) {
+	s.connected.Store(v)
+	if !v {
+		s.mu.Lock()
+		clear(s.joined)
+		s.mu.Unlock()
+	}
+}
+func (s *State) Observe(command, nick string, params []string, trailing string) {
+	if !strings.EqualFold(nick, s.Nick) && command != "KICK" {
+		return
+	}
+	var ch string
+	switch command {
+	case "JOIN":
+		if len(params) > 0 {
+			ch = params[0]
+		} else {
+			ch = trailing
+		}
+		if strings.EqualFold(nick, s.Nick) && ch != "" {
+			s.mu.Lock()
+			s.joined[strings.ToLower(ch)] = true
+			s.mu.Unlock()
+		}
+	case "PART":
+		if len(params) > 0 {
+			ch = params[0]
+		}
+		if strings.EqualFold(nick, s.Nick) && ch != "" {
+			s.mu.Lock()
+			delete(s.joined, strings.ToLower(ch))
+			s.mu.Unlock()
+		}
+	case "KICK":
+		if len(params) >= 2 && strings.EqualFold(params[1], s.Nick) {
+			s.mu.Lock()
+			delete(s.joined, strings.ToLower(params[0]))
+			s.mu.Unlock()
+		}
+	}
+}
+func (s *State) ChannelState(name string) string {
+	if !s.Connected() {
+		return "disconnected"
+	}
+	s.mu.RLock()
+	joined := s.joined[strings.ToLower(name)]
+	s.mu.RUnlock()
+	if joined {
+		return "joined"
+	}
+	return "joining"
+}
+func (s *State) Connected() bool { return s.connected.Load() }
 
 type request struct {
 	PBMP   int            `json:"pbmp"`

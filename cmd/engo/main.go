@@ -104,7 +104,10 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		}
 		reloadScripts = rt.Reload
 	}
-	client.OnMessage(func(m irc.Message) error { pbstate.Observe(m.Command,m.Nick,m.Params,m.Trailing); return b.Handle(m) })
+	client.OnMessage(func(m irc.Message) error {
+		pbstate.Observe(m.Command, m.Nick, m.Params, m.Trailing)
+		return b.Handle(m)
+	})
 	reload := make(chan os.Signal, 1)
 	signal.Notify(reload, syscall.SIGHUP)
 	defer signal.Stop(reload)

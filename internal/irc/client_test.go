@@ -258,3 +258,26 @@ func TestCAPDELRequiredRuntimeCapabilityDisconnects(t *testing.T){
 		})
 	}
 }
+
+
+func TestNormalizeCapabilities(t *testing.T){
+ got:=normalizeCapabilities([]string{" ACCOUNT-TAG ","server-time","account-tag","","Server-Time"})
+ want:=[]string{"account-tag","server-time"}
+ if len(got)!=len(want){t.Fatalf("normalizeCapabilities()=%v, want %v",got,want)}
+ for i:=range want{if got[i]!=want[i]{t.Fatalf("normalizeCapabilities()=%v, want %v",got,want)}}
+}
+
+func TestRunNormalizesConfiguredCapabilities(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{" ACCOUNT-TAG ","account-tag"}},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}()
+ r:=bufio.NewReader(serverConn)
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * LS :account-tag");err!=nil{t.Fatal(err)}
+ line,err:=r.ReadString('\n');if err!=nil{t.Fatal(err)}
+ if strings.TrimSpace(line)!="CAP REQ :account-tag"{t.Fatalf("unexpected CAP request %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :account-tag");err!=nil{t.Fatal(err)}
+ line,err=r.ReadString('\n');if err!=nil{t.Fatal(err)}
+ if strings.TrimSpace(line)!="CAP END"{t.Fatalf("unexpected CAP completion %q",line)}
+ serverConn.Close()
+ if err:=<-errCh;err!=io.EOF{t.Fatalf("Run() error=%v, want EOF",err)}
+}

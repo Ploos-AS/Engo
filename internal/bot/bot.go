@@ -28,6 +28,8 @@ type Event struct {
 
 type Handler func(Event) error
 
+type accountIdentity struct { account, userhost string }
+
 type Registry struct {
 	Events map[string][]Handler
 	Commands map[string]Handler
@@ -39,12 +41,12 @@ type Bot struct {
 	handlers map[string][]Handler
 	commands map[string]Handler
 	prefix string
-	accounts map[string]string
+	accounts map[string]accountIdentity
 	caseMapping string
 }
 
 func New(sender Sender) *Bot {
-	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), prefix: "!", accounts: make(map[string]string), caseMapping: "rfc1459"}
+	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), prefix: "!", accounts: make(map[string]accountIdentity), caseMapping: "rfc1459"}
 }
 
 func NewRegistry() Registry {
@@ -76,18 +78,21 @@ func (b *Bot) Handle(m irc.Message) error {
 	b.mu.Lock()
 	if m.Command=="005"{b.applyISupport(m)}
 	nickKey:=ircNickKey(m.Nick,b.caseMapping)
-	account:=b.accounts[nickKey]
+	identity:=b.accounts[nickKey]
+	currentUserhost:=messageUserhost(m)
+	if identity.account!=""&&identity.userhost!=""&&currentUserhost!=""&&identity.userhost!=currentUserhost{delete(b.accounts,nickKey);identity=accountIdentity{}}
+	account:=identity.account
 	if tagged,ok:=m.Tags["account"];ok {
 		account=tagged
-		if account==""||account=="*"{account="";delete(b.accounts,nickKey)}else{b.accounts[nickKey]=account}
+		if account==""||account=="*"{account="";delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
 	}
 	switch m.Command {
 	case "ACCOUNT":
-		account="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]};if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=account}
+		account="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]};if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}}
 	case "JOIN":
-		if len(m.Params)>=2 { account=m.Params[1]; if account=="*"{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=account} }
+		if len(m.Params)>=2 { account=m.Params[1]; if account=="*"{account=""}; if account==""{delete(b.accounts,nickKey)}else{b.accounts[nickKey]=accountIdentity{account:account,userhost:currentUserhost}} }
 	case "NICK":
-		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,nickKey);b.accounts[newNick]=account}
+		newNick:=m.Trailing;if newNick==""&&len(m.Params)>0{newNick=m.Params[0]};if newNick!=""&&account!=""{delete(b.accounts,nickKey);b.accounts[ircNickKey(newNick,b.caseMapping)]=accountIdentity{account:account,userhost:currentUserhost}}
 	case "QUIT":
 		delete(b.accounts,nickKey)
 	}
@@ -159,7 +164,7 @@ func (b *Bot) applyISupport(m irc.Message){
 				if v!=b.caseMapping{
 					// Identity cache keys depend on CASEMAPPING. Fail closed rather
 					// than risk granting permissions through a stale nick mapping.
-					b.accounts=make(map[string]string)
+					b.accounts=make(map[string]accountIdentity)
 					b.caseMapping=v
 				}
 			}
@@ -177,4 +182,9 @@ func ircNickKey(nick,caseMapping string)string{
 		b.WriteRune(r)
 	}
 	return b.String()
+}
+
+func messageUserhost(m irc.Message) string {
+	if i:=strings.IndexByte(m.Prefix,'!');i>=0&&i+1<len(m.Prefix){return m.Prefix[i+1:]}
+	return ""
 }

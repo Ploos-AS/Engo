@@ -403,3 +403,17 @@ func TestRunRejectsRegistrationBeforeSASLComplete(t *testing.T){
  if _,err:=fmt.Fprintln(serverConn,":server 001 nick :Welcome");err!=nil{t.Fatal(err)}
  select{case err:=<-errCh:if err==nil||!strings.Contains(err.Error(),"registered before capability negotiation completed"){t.Fatalf("Run() error=%v",err)};case <-time.After(time.Second):t.Fatal("Run() accepted registration before SASL completed")}
 }
+
+
+func TestRunAcceptsRegistrationAfterCAPComplete(t *testing.T){
+ clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+ c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+ errCh:=make(chan error,1);go func(){errCh<-c.Run()}();r:=bufio.NewReader(serverConn)
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * LS :account-tag");err!=nil{t.Fatal(err)}
+ line,err:=r.ReadString('\n');if err!=nil{t.Fatal(err)};if strings.TrimSpace(line)!="CAP REQ :account-tag"{t.Fatalf("unexpected CAP request %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :account-tag");err!=nil{t.Fatal(err)}
+ line,err=r.ReadString('\n');if err!=nil{t.Fatal(err)};if strings.TrimSpace(line)!="CAP END"{t.Fatalf("unexpected CAP completion %q",line)}
+ if _,err:=fmt.Fprintln(serverConn,":server 001 nick :Welcome");err!=nil{t.Fatal(err)}
+ serverConn.Close()
+ if err:=<-errCh;err!=io.EOF{t.Fatalf("Run() error=%v, want EOF",err)}
+}

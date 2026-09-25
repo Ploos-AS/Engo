@@ -21,6 +21,7 @@ type Runtime struct {
 	store *Store
 	scheduler *Scheduler
 	http *HTTPClient
+	capabilities Capabilities
 }
 
 func New(path string,b *bot.Bot)*Runtime{return NewLimited(path,b,100000)}
@@ -29,6 +30,7 @@ func NewLimited(path string,b *bot.Bot,maxAllocs int64)*Runtime{
 }
 func (r *Runtime) SetStore(s *Store){r.store=s}
 func (r *Runtime) SetHTTP(h *HTTPClient){r.http=h}
+func (r *Runtime) SetCapabilities(c Capabilities){r.capabilities=c}
 func (r *Runtime) Load()error{return r.Reload()}
 func (r *Runtime) Reload()error{
 	src,err:=os.ReadFile(r.path);if err!=nil{return fmt.Errorf("read script: %w",err)}
@@ -81,7 +83,7 @@ func (r *Runtime) eventCall(active string)func(...tengo.Object)(tengo.Object,err
 		case "timer_cancel":
 			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};id,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("timer id must be string")};return tengo.FromInterface(r.scheduler.Cancel(id))
 		case "http_get":
-			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};raw,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("http_get URL must be string")};if !r.http.Enabled(){return nil,fmt.Errorf("HTTP capability is disabled")};res,err:=r.http.Get(raw);if err!=nil{return nil,err};return tengo.FromInterface(res)
+			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};if err:=r.capabilities.Require("http");err!=nil{return nil,err};raw,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("http_get URL must be string")};if !r.http.Enabled(){return nil,fmt.Errorf("HTTP capability is disabled")};res,err:=r.http.Get(raw);if err!=nil{return nil,err};return tengo.FromInterface(res)
 		case "kv_get":
 			if len(args)!=2{return nil,tengo.ErrWrongNumArguments};key,ok:=tengo.ToString(args[1]);if !ok{return nil,fmt.Errorf("kv key must be string")};v,found,err:=r.store.Get(key);if err!=nil{return nil,err};if !found{return tengo.UndefinedValue,nil};return tengo.FromInterface(v)
 		case "kv_set":

@@ -1,0 +1,15 @@
+# Go
+/bin/
+*.test
+*.out
+coverage.out
+
+# Local configuration and runtime state
+.env
+config.local.*
+data/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/

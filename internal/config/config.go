@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,6 +18,9 @@ type Config struct {
 	ScriptsDir string
 	ScriptMaxAllocs int64
 	StateDir string
+	HTTPAllow []string
+	HTTPTimeout time.Duration
+	HTTPMaxBody int64
 	SASLUsername string
 	SASLPassword string
 	ReconnectMin time.Duration
@@ -34,6 +38,9 @@ func FromEnv() Config {
 		ScriptsDir: os.Getenv("ENGO_SCRIPTS_DIR"),
 		ScriptMaxAllocs: int64Env("ENGO_SCRIPT_MAX_ALLOCS",100000),
 		StateDir: getenv("ENGO_STATE_DIR","data/state"),
+		HTTPAllow: csvEnv("ENGO_HTTP_ALLOW"),
+		HTTPTimeout: durationEnv("ENGO_HTTP_TIMEOUT",10*time.Second),
+		HTTPMaxBody: int64Env("ENGO_HTTP_MAX_BODY",262144),
 		SASLUsername: os.Getenv("ENGO_SASL_USERNAME"),
 		SASLPassword: os.Getenv("ENGO_SASL_PASSWORD"),
 		ReconnectMin: durationEnv("ENGO_RECONNECT_MIN",2*time.Second),
@@ -43,6 +50,7 @@ func FromEnv() Config {
 
 func (c Config) Validate() error {
 	if c.ScriptMaxAllocs <= 0 { return fmt.Errorf("ENGO_SCRIPT_MAX_ALLOCS must be positive") }
+	if c.HTTPTimeout<=0 || c.HTTPMaxBody<=0 { return fmt.Errorf("invalid HTTP capability limits") }
 	if c.Server=="" { return nil }
 	if c.Nick=="" || c.User=="" || c.RealName=="" { return fmt.Errorf("nick, user and real name must not be empty") }
 	if (c.SASLUsername=="")!=(c.SASLPassword=="") { return fmt.Errorf("ENGO_SASL_USERNAME and ENGO_SASL_PASSWORD must be set together") }
@@ -62,3 +70,5 @@ func int64Env(key string,fallback int64) int64 {
 	n,err:=strconv.ParseInt(v,10,64); if err!=nil { return fallback }
 	return n
 }
+
+func csvEnv(key string)[]string{v:=strings.TrimSpace(os.Getenv(key));if v==""{return nil};parts:=strings.Split(v,",");out:=parts[:0];for _,p:=range parts{if p=strings.TrimSpace(p);p!=""{out=append(out,p)}};return out}

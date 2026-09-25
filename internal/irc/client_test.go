@@ -122,3 +122,17 @@ func TestCapabilityNamesNormalizeModifiers(t *testing.T){
 		if !containsCapability(caps,want){t.Fatalf("missing normalized capability %q in %#v",want,caps)}
 	}
 }
+
+
+func TestNegativeCapabilityACKDoesNotCompleteNegotiation(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close()
+	c:=&Client{conn:clientConn,cfg:Config{Capabilities:[]string{"account-tag"}},registrationTimeout:time.Second}
+	done:=make(chan error,1);go func(){done<-c.Run()}()
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo LS :account-tag\r\n"));err!=nil{t.Fatal(err)}
+	buf:=make([]byte,256);if _,err:=serverConn.Read(buf);err!=nil{t.Fatal(err)}
+	if _,err:=serverConn.Write([]byte(":irc.example CAP engo ACK :-account-tag\r\n"));err!=nil{t.Fatal(err)}
+	_ = serverConn.SetReadDeadline(time.Now().Add(30*time.Millisecond))
+	n,err:=serverConn.Read(buf)
+	if err==nil&&strings.Contains(string(buf[:n]),"CAP END"){t.Fatalf("negative ACK incorrectly completed negotiation")}
+	_ = clientConn.Close();<-done
+}

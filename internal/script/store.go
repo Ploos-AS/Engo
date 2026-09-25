@@ -36,7 +36,13 @@ func (s *Store) read()(map[string]string,error){
 }
 func (s *Store) write(m map[string]string)error{
 	if s.root==""{return nil};if err:=os.MkdirAll(s.root,0700);err!=nil{return err};b,err:=json.Marshal(m);if err!=nil{return err}
-	tmp:=s.path()+".tmp";if err:=os.WriteFile(tmp,b,0600);err!=nil{return err};return os.Rename(tmp,s.path())
+	tmp,err:=os.CreateTemp(s.root,s.namespace+".*.tmp");if err!=nil{return err}
+	tmpName:=tmp.Name()
+	defer os.Remove(tmpName)
+	if err:=tmp.Chmod(0600);err!=nil{tmp.Close();return err}
+	if _,err:=tmp.Write(b);err!=nil{tmp.Close();return err}
+	if err:=tmp.Close();err!=nil{return err}
+	return os.Rename(tmpName,s.path())
 }
 func (s *Store) path()string{return filepath.Join(s.root,s.namespace+".json")}
 func validKey(key string)error{

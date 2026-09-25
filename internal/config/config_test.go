@@ -103,3 +103,12 @@ func TestScriptCapabilityNamesRejectTraversal(t *testing.T){
 	good:=[]string{"weather.tengo:http","weather-prod_1.tengo:http","weather.prod.tengo:http"}
 	for _,raw:=range good{if err:=validateScriptCapabilityNames(raw);err!=nil{t.Fatalf("valid name %q rejected: %v",raw,err)}}
 }
+
+
+func TestPermissionPolicyRejectsDuplicateAccounts(t *testing.T){
+	for _,raw:=range []string{"alice:admin,alice:operator","Alice:admin,alice:operator"}{if err:=validatePermissions(raw);err==nil{t.Fatalf("expected duplicate account rejection for %q",raw)}}
+}
+
+func TestCommandPolicyRejectsDuplicateCommands(t *testing.T){
+	for _,raw:=range []string{"reload:admin,reload:operator","kick:operator,kick:admin"}{if err:=validateCommandPermissions(raw);err==nil{t.Fatalf("expected duplicate command rejection for %q",raw)}}
+}

@@ -107,3 +107,15 @@ func TestExtendedJoinIdentityInEvent(t *testing.T){
 	if obj["account"]!="alice"{t.Fatalf("unexpected account: %#v",obj["account"])}
 	if obj["realname"]!="Alice Example"{t.Fatalf("unexpected realname: %#v",obj["realname"])}
 }
+
+func TestAccountNotifyEventObject(t *testing.T){
+	for _,tc:=range []struct{line,want string}{
+		{":alice!u@example ACCOUNT services-account","services-account"},
+		{":alice!u@example ACCOUNT *",""},
+	}{
+		m:=irc.ParseMessage(tc.line)
+		account:="";if len(m.Params)>0&&m.Params[0]!="*"{account=m.Params[0]}
+		obj:=eventObject(bot.Event{Name:"account",Nick:m.Nick,Account:account,Message:m})
+		if obj["account"]!=tc.want{t.Fatalf("%q: account=%#v, want %q",tc.line,obj["account"],tc.want)}
+	}
+}

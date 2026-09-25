@@ -63,7 +63,7 @@ func main() {
 }
 
 func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
-	client, err := irc.Dial(irc.Config{Server: cfg.Server, Nick: cfg.Nick, User: cfg.User, RealName: cfg.RealName, TLS: cfg.TLS, SASLUsername: cfg.SASLUsername, SASLPassword: cfg.SASLPassword, Capabilities: cfg.IRCCapabilities})
+	client, err := irc.Dial(irc.Config{Server: cfg.Server, Nick: cfg.Nick, User: cfg.User, RealName: cfg.RealName, TLS: cfg.TLS, SASLUsername: cfg.SASLUsername, SASLPassword: cfg.SASLPassword, Capabilities: cfg.IRCCapabilities, Channels: cfg.Channels})
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		}
 		reloadScripts = rt.Reload
 	}
-	client.OnMessage(b.Handle)
+	client.OnMessage(func(m irc.Message) error { pbstate.Observe(m.Command,m.Nick,m.Params,m.Trailing); return b.Handle(m) })
 	reload := make(chan os.Signal, 1)
 	signal.Notify(reload, syscall.SIGHUP)
 	defer signal.Stop(reload)

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net"
 	"os"
+	"strings"
+	"sync"
 	"sync/atomic"
 )
 
@@ -13,12 +15,16 @@ type State struct {
 	Nick, Network string
 	Channels      []string
 	connected     atomic.Bool
+	mu            sync.RWMutex
+	joined        map[string]bool
 }
 
 func NewState(nick, network string, channels ...string) *State {
-	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...)}
+	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool)}
 }
-func (s *State) SetConnected(v bool) { s.connected.Store(v) }
+func (s *State) SetConnected(v bool) { s.connected.Store(v); if !v { s.mu.Lock(); clear(s.joined); s.mu.Unlock() } }
+func (s *State) Observe(command, nick string, params []string, trailing string) { if !strings.EqualFold(nick,s.Nick) && command!="KICK" { return }; var ch string; switch command { case "JOIN": if len(params)>0 { ch=params[0] } else { ch=trailing }; if strings.EqualFold(nick,s.Nick)&&ch!="" { s.mu.Lock(); s.joined[strings.ToLower(ch)]=true; s.mu.Unlock() }; case "PART": if len(params)>0 { ch=params[0] }; if strings.EqualFold(nick,s.Nick)&&ch!="" { s.mu.Lock(); delete(s.joined,strings.ToLower(ch)); s.mu.Unlock() }; case "KICK": if len(params)>=2&&strings.EqualFold(params[1],s.Nick) { s.mu.Lock(); delete(s.joined,strings.ToLower(params[0])); s.mu.Unlock() } } }
+func (s *State) ChannelState(name string) string { if !s.Connected(){return "disconnected"}; s.mu.RLock(); joined:=s.joined[strings.ToLower(name)]; s.mu.RUnlock(); if joined{return "joined"}; return "joining" }
 func (s *State) Connected() bool     { return s.connected.Load() }
 
 type request struct {
@@ -58,13 +64,9 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		}
 		r.Result = map[string]any{"implementation": "engo", "version": "0.1.0", "nick": s.Nick, "state": state}
 	case "channels.list":
-		state := "disconnected"
-		if s.Connected() {
-			state = "configured"
-		}
 		channels := make([]any, 0, len(s.Channels))
 		for _, name := range s.Channels {
-			channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": state})
+			channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": s.ChannelState(name)})
 		}
 		r.Result = map[string]any{"channels": channels}
 	case "networks.list":

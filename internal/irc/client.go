@@ -20,6 +20,7 @@ type Config struct {
 	SASLUsername string
 	SASLPassword string
 	Capabilities []string
+	Channels     []string
 }
 
 type Client struct {
@@ -305,6 +306,7 @@ func (c *Client) Run() error {
 			if saslWanted && !saslComplete {
 				return fmt.Errorf("registered before SASL completed")
 			}
+			for _, channel := range c.cfg.Channels { if err := c.writef("JOIN %s", sanitizeTarget(channel)); err != nil { return err } }
 			_ = c.conn.SetReadDeadline(time.Time{})
 		}
 	}

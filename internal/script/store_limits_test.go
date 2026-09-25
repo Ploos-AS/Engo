@@ -1,7 +1,9 @@
 package script
 
 import (
-	"fmt"\n\t"strings"\n\t"sync"
+	"fmt"
+	"strings"
+	"sync"
 	"testing"
 )
 

@@ -337,7 +337,7 @@ func TestRunRejectsUnrequestedCapabilityInACK(t *testing.T){
  if _,err:=fmt.Fprintln(serverConn,":server CAP * ACK :account-tag server-time");err!=nil{t.Fatal(err)}
  select{
  case err:=<-errCh:
-  if err==nil||!strings.Contains(err.Error(),"server ACKed unrequested IRC capability \\"server-time\\""){t.Fatalf("Run() error=%v",err)}
+  if err==nil||!strings.Contains(err.Error(),"server ACKed unrequested IRC capability \"server-time\""){t.Fatalf("Run() error=%v",err)}
  case <-time.After(time.Second):t.Fatal("Run() did not reject unrequested capability in ACK")
  }
 }

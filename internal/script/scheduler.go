@@ -54,6 +54,6 @@ func (s *Scheduler) CancelAll(){
 }
 func parseTimerDuration(v string)(time.Duration,error){
 	d,err:=time.ParseDuration(v)
-	if err!=nil||d<time.Millisecond{return 0,fmt.Errorf("invalid timer duration %q",v)}
+	if err!=nil||d<time.Second||d>30*24*time.Hour{return 0,fmt.Errorf("timer duration must be between 1s and 720h")}
 	return d,nil
 }

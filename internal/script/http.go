@@ -6,9 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/netip"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -59,7 +57,6 @@ func (h *HTTPClient) validateURL(u *url.URL)error{
 	}
 	return nil
 }
-func mustPort(port string)int{n,_:=strconv.Atoi(port);return n}
 func blockedIP(ip net.IP)bool{
 	return ip.IsLoopback()||ip.IsPrivate()||ip.IsUnspecified()||ip.IsMulticast()||ip.IsLinkLocalUnicast()||ip.IsLinkLocalMulticast()
 }

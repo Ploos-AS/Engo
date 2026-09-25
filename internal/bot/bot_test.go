@@ -170,3 +170,13 @@ func TestExtendedJoinWithoutUserhostIsNotVerified(t *testing.T){
  if got.Account!=""{t.Fatalf("extended JOIN without userhost exposed account %q",got.Account)}
  if got.AccountVerified{t.Fatal("extended JOIN without userhost was marked verified")}
 }
+
+
+func TestNickChangeWithoutUserhostDoesNotMigrateAccount(t *testing.T){
+ b:=New(&testSender{});var got string
+ b.Command("who",func(ev Event)error{got=ev.Account;return nil})
+ if err:=b.Handle(irc.ParseMessage(":alice!u@example ACCOUNT alice-account"));err!=nil{t.Fatal(err)}
+ if err:=b.Handle(irc.ParseMessage(":alice NICK :alice2"));err!=nil{t.Fatal(err)}
+ if err:=b.Handle(irc.ParseMessage(":alice2!u@example PRIVMSG #engo :!who"));err!=nil{t.Fatal(err)}
+ if got!=""{t.Fatalf("NICK without userhost migrated account identity: %q",got)}
+}

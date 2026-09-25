@@ -9,9 +9,11 @@ type Capabilities struct {
 func (c Capabilities) Require(name string) error {
 	switch name {
 	case "http":
-		if c.HTTP { return nil }
+		if c.HTTP {
+			return nil
+		}
+		return fmt.Errorf("capability %q is not granted", name)
 	default:
 		return fmt.Errorf("unknown capability %q", name)
 	}
-	return fmt.Errorf("capability %q is not granted", name)
 }

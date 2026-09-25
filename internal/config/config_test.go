@@ -83,3 +83,8 @@ func TestCommandPermissionsEnvAndValidation(t *testing.T){
 	if err:=validateCommandPermissions(cfg.CommandPermissionsRaw);err!=nil{t.Fatalf("valid command permissions rejected: %v",err)}
 	for _,raw:=range []string{"reload","reload:"," :admin","reload:admin+operator"}{if err:=validateCommandPermissions(raw);err==nil{t.Fatalf("expected invalid command permission for %q",raw)}}
 }
+
+func TestPermissionNameValidation(t *testing.T){
+	for _,name:=range []string{"admin","irc.operator","script.reload","moderation-kick","ops_1"}{if err:=validatePermissionName(name);err!=nil{t.Fatalf("valid permission %q rejected: %v",name,err)}}
+	for _,name:=range []string{"","Admin",".admin","admin.","admin..reload","admin reload","admin:reload","ådmín"}{if err:=validatePermissionName(name);err==nil{t.Fatalf("invalid permission %q accepted",name)}}
+}

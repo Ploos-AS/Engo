@@ -1,7 +1,8 @@
 package script
 
 import (
-	"net"\n\t"net/http"
+	"net"
+	"net/http"
 	"net/url"
 	"testing"
 	"time"

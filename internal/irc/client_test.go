@@ -1,8 +1,10 @@
 package irc
 
 import (
+	"net"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCapabilityListed(t *testing.T) {
@@ -48,4 +50,12 @@ func TestAuthenticateChunks(t *testing.T){
 func TestCapabilityNamesFromNAK(t *testing.T){
 	caps:=capabilityNames(":irc.example CAP engo NAK :sasl echo-message")
 	if !containsCapability(caps,"sasl")||!containsCapability(caps,"echo-message"){t.Fatalf("unexpected NAK capabilities: %#v",caps)}
+}
+
+func TestRegistrationTimeout(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer serverConn.Close()
+	c:=&Client{conn:clientConn,cfg:Config{},registrationTimeout:20*time.Millisecond}
+	defer clientConn.Close()
+	err:=c.Run()
+	if err==nil||!strings.Contains(err.Error(),"registration timed out"){t.Fatalf("expected registration timeout, got %v",err)}
 }

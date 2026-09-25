@@ -75,3 +75,11 @@ func TestAccountPermissionsEnvAndValidation(t *testing.T){
 	if err:=validatePermissions(cfg.AccountPermissionsRaw);err!=nil{t.Fatalf("valid permissions rejected: %v",err)}
 	for _,raw:=range []string{"alice","alice:"," :admin","alice:admin+"}{if err:=validatePermissions(raw);err==nil{t.Fatalf("expected invalid permissions for %q",raw)}}
 }
+
+func TestCommandPermissionsEnvAndValidation(t *testing.T){
+	t.Setenv("ENGO_COMMAND_PERMISSIONS","reload:admin,kick:operator")
+	cfg:=FromEnv()
+	if cfg.CommandPermissions["reload"]!="admin"||cfg.CommandPermissions["kick"]!="operator"{t.Fatalf("unexpected command permissions: %#v",cfg.CommandPermissions)}
+	if err:=validateCommandPermissions(cfg.CommandPermissionsRaw);err!=nil{t.Fatalf("valid command permissions rejected: %v",err)}
+	for _,raw:=range []string{"reload","reload:"," :admin","reload:admin+operator"}{if err:=validateCommandPermissions(raw);err==nil{t.Fatalf("expected invalid command permission for %q",raw)}}
+}

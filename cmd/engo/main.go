@@ -41,7 +41,7 @@ func main() {
 		started := time.Now()
 		err := runIRC(ctx, cfg, pbstate)
 		pbstate.SetConnected(false)
-		pbstate.Log("warn","IRC session disconnected")
+		pbstate.Log("warn", "IRC session disconnected")
 		pbstate.CountReconnect()
 		if ctx.Err() != nil {
 			return
@@ -72,7 +72,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 	defer client.Close()
 	defer pbstate.SetActions(nil, nil)
 	pbstate.SetConnected(true)
-	pbstate.Log("info","IRC session connected")
+	pbstate.Log("info", "IRC session connected")
 	pbstate.SetActions(client.Join, client.Part)
 	b := bot.New(client)
 	var reloadScripts func() error
@@ -160,10 +160,10 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		case <-reload:
 			if err := reloadScripts(); err != nil {
 				fmt.Fprintf(os.Stderr, "engo: script reload rejected; previous version remains active: %v\n", err)
-				pbstate.Log("warn","script reload rejected; previous version remains active")
+				pbstate.Log("warn", "script reload rejected; previous version remains active")
 			} else {
 				fmt.Fprintln(os.Stderr, "engo: script reloaded")
-				pbstate.Log("info","script reloaded")
+				pbstate.Log("info", "script reloaded")
 			}
 		}
 	}

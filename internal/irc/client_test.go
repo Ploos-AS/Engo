@@ -1057,4 +1057,14 @@ func TestMessageTargetsCannotInjectIRCLines(t *testing.T) {
 	}
 }
 
-func TestRFC1459Identity(t *testing.T){if !EqualRFC1459("Nick[One]\\\\^","nICK{one}|~"){t.Fatal("RFC1459 equivalents differ")};if !PrefixIsNick("Nick[One]!user@host","nick{one}"){t.Fatal("prefix nick mismatch")};if PrefixIsNick("NickExtra!u@h","Nick"){t.Fatal("prefix accepted partial nick")}}
+func TestRFC1459Identity(t *testing.T) {
+	if !EqualRFC1459("Nick[One]\\\\^", "nICK{one}|~") {
+		t.Fatal("RFC1459 equivalents differ")
+	}
+	if !PrefixIsNick("Nick[One]!user@host", "nick{one}") {
+		t.Fatal("prefix nick mismatch")
+	}
+	if PrefixIsNick("NickExtra!u@h", "Nick") {
+		t.Fatal("prefix accepted partial nick")
+	}
+}

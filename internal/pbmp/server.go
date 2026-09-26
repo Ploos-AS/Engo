@@ -26,11 +26,13 @@ type State struct {
 	rxLines       atomic.Uint64
 	reconnects    atomic.Uint64
 	logs          []map[string]string
+	config        map[string]any
 }
 
 func NewState(nick, network string, channels ...string) *State {
 	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool)}
 }
+func (s *State) SetConfig(v map[string]any){s.mu.Lock();s.config=v;s.mu.Unlock()}
 func (s *State) SetModuleAction(fn func(string, string) error) {
 	s.mu.Lock()
 	s.moduleAction = fn
@@ -152,7 +154,11 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	case "pbmp.info":
 		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
 	case "capabilities.list":
-		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable", "metrics.read", "logs.read"}}
+		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable", "metrics.read", "logs.read", "config.schema", "config.read"}}
+	case "config.schema":
+		r.Result=map[string]any{"fields":[]map[string]any{{"name":"server","type":"string","reload":"reconnect"},{"name":"nick","type":"string","reload":"reconnect"},{"name":"user","type":"string","reload":"reconnect"},{"name":"realname","type":"string","reload":"reconnect"},{"name":"tls","type":"boolean","reload":"reconnect"},{"name":"channels","type":"array","reload":"reconnect"},{"name":"script","type":"string","reload":"restart"},{"name":"scripts_dir","type":"string","reload":"restart"},{"name":"reconnect_min","type":"string","reload":"restart"},{"name":"reconnect_max","type":"string","reload":"restart"}}}
+	case "config.read":
+		s.mu.RLock();cfg:=make(map[string]any,len(s.config));for k,v:=range s.config{cfg[k]=v};s.mu.RUnlock();r.Result=map[string]any{"config":cfg}
 	case "logs.read":
 		r.Result = map[string]any{"entries": s.Logs()}
 	case "metrics.read":

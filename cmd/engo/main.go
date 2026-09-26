@@ -132,7 +132,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 			if op != "reload" {
 				return fmt.Errorf("operation unavailable in single-script mode")
 			}
-			return rt.Reload
+			return rt.Reload()
 		}
 		moduleList = func() []map[string]any {
 			return []map[string]any{{"id": name, "runtime": "tengo", "state": "active", "capabilities": caps}}

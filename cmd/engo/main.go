@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/Ploos-AS/Engo/internal/bot"
+	botaiclient "github.com/Ploos-AS/Engo/internal/botai"
 	"github.com/Ploos-AS/Engo/internal/config"
 	"github.com/Ploos-AS/Engo/internal/irc"
 	"github.com/Ploos-AS/Engo/internal/pbmp"
@@ -78,6 +80,36 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 	pbstate.Log("info", "IRC session connected")
 	pbstate.SetActions(client.Join, client.Part)
 	b := bot.New(client)
+	if cfg.BotAIURL != "" {
+		ai, aiErr := botaiclient.New(cfg.BotAIURL, cfg.BotAITimeout)
+		if aiErr != nil {
+			fmt.Fprintf(os.Stderr, "engo: BotAI disabled: %v\n", aiErr)
+			pbstate.Log("warn", "BotAI disabled by invalid configuration")
+		} else {
+			checkCtx, cancel := context.WithTimeout(ctx, cfg.BotAITimeout)
+			compatErr := ai.Compatible(checkCtx)
+			cancel()
+			if compatErr != nil {
+				fmt.Fprintf(os.Stderr, "engo: BotAI unavailable/incompatible; continuing without AI: %v\n", compatErr)
+				pbstate.Log("warn", "BotAI unavailable or incompatible; IRC operation continues")
+			} else {
+				b.Command("ai", func(ev bot.Event) error {
+					if len(ev.Args) == 0 { return b.Notice(ev.Nick, "usage: !ai <message>") }
+					replyTarget := ev.Target
+					if replyTarget == "" || !strings.HasPrefix(replyTarget, "#") { replyTarget = ev.Nick }
+					aiCtx, cancel := context.WithTimeout(ctx, cfg.BotAITimeout)
+					defer cancel()
+					reply, err := ai.Chat(aiCtx, cfg.BotAIExpert, strings.Join(ev.Args, " "))
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "engo: BotAI request failed: %v\n", err)
+						return b.Notice(ev.Nick, "BotAI is temporarily unavailable")
+					}
+					return b.Say(replyTarget, reply)
+				})
+				pbstate.Log("info", "BotAI integration enabled")
+			}
+		}
+	}
 	var reloadScripts func() error
 	var moduleList func() []map[string]any
 	var moduleAction func(string, string) error

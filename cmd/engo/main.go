@@ -93,6 +93,12 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 				fmt.Fprintf(os.Stderr, "engo: BotAI unavailable/incompatible; continuing without AI: %v\n", compatErr)
 				pbstate.Log("warn", "BotAI unavailable or incompatible; IRC operation continues")
 			} else {
+				conversations := botaiclient.NewConversations(int(cfg.BotAIHistoryMessages))
+				b.Command("aireset", func(ev bot.Event) error {
+					key := aiConversationKey(ev)
+					conversations.Reset(key)
+					return b.Notice(ev.Nick, "BotAI conversation context cleared")
+				})
 				b.Command("ai", func(ev bot.Event) error {
 					if len(ev.Args) == 0 {
 						return b.Notice(ev.Nick, "usage: !ai <message>")
@@ -103,11 +109,14 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 					}
 					aiCtx, cancel := context.WithTimeout(ctx, cfg.BotAITimeout)
 					defer cancel()
-					reply, err := ai.Chat(aiCtx, cfg.BotAIExpert, strings.Join(ev.Args, " "))
+					message := strings.Join(ev.Args, " ")
+					key := aiConversationKey(ev)
+					reply, err := ai.ChatWithHistory(aiCtx, cfg.BotAIExpert, conversations.History(key), message)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "engo: BotAI request failed: %v\n", err)
 						return b.Notice(ev.Nick, "BotAI is temporarily unavailable")
 					}
+					conversations.AddExchange(key, message, reply)
 					return b.Say(replyTarget, reply)
 				})
 				pbstate.Log("info", "BotAI integration enabled")
@@ -210,6 +219,16 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 			}
 		}
 	}
+}
+
+func aiConversationKey(ev bot.Event) string {
+	if ev.Target != "" && strings.HasPrefix(ev.Target, "#") {
+		return "channel:" + strings.ToLower(ev.Target)
+	}
+	if ev.AccountVerified && ev.Account != "" {
+		return "account:" + strings.ToLower(ev.Account)
+	}
+	return "nick:" + strings.ToLower(ev.Nick)
 }
 
 func scriptNamespace(path string) string {

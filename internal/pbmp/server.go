@@ -25,6 +25,7 @@ type State struct {
 	started       atomic.Int64
 	rxLines       atomic.Uint64
 	reconnects    atomic.Uint64
+	logs          []map[string]string
 }
 
 func NewState(nick, network string, channels ...string) *State {
@@ -42,6 +43,8 @@ func (s *State) SetActions(join func(string) error, part func(string, string) er
 	s.part = part
 	s.mu.Unlock()
 }
+func (s *State) Log(level,message string){message=strings.NewReplacer("\r"," ","\n"," ").Replace(message);if len(message)>192{message=message[:192]};s.mu.Lock();s.logs=append(s.logs,map[string]string{"level":level,"message":message});if len(s.logs)>32{s.logs=append([]map[string]string(nil),s.logs[len(s.logs)-32:]...)};s.mu.Unlock()}
+func (s *State) Logs()[]map[string]string{s.mu.RLock();defer s.mu.RUnlock();out:=make([]map[string]string,len(s.logs));copy(out,s.logs);return out}
 func (s *State) CountRX()        { s.rxLines.Add(1) }
 func (s *State) CountReconnect() { s.reconnects.Add(1) }
 func (s *State) SetConnected(v bool) {
@@ -132,7 +135,9 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	case "pbmp.info":
 		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
 	case "capabilities.list":
-		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable", "metrics.read"}}
+		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable", "metrics.read", "logs.read"}}
+	case "logs.read":
+		r.Result=map[string]any{"entries":s.Logs()}
 	case "metrics.read":
 		up := int64(0)
 		if s.Connected() {

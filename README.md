@@ -96,3 +96,5 @@ MIT. See [`LICENSE`](LICENSE).
 ## Optional BotAI
 
 Engo can use the separate BotAI service without depending on it for normal IRC operation. Set `ENGO_BOTAI_URL` to enable the `!ai <message>` command; `ENGO_BOTAI_EXPERT` defaults to `auto`. See `docs/M1.1-BOTAI.md`.
+
+M1.2 adds optional in-memory bounded BotAI context (`ENGO_BOTAI_HISTORY_MESSAGES`, default 10, max 20) and `!aireset`; see `docs/M1.2-BOTAI-CONTEXT.md`.

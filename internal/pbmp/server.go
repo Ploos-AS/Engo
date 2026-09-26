@@ -302,6 +302,7 @@ func Handle(in []byte, s *State) ([]byte, error) {
 				s.mu.Lock()
 				s.dynamic[irc.Casefold(name)] = name
 				s.wanted[irc.Casefold(name)] = false
+				delete(s.joined, irc.Casefold(name))
 				s.parting[irc.Casefold(name)] = true
 				s.mu.Unlock()
 			}

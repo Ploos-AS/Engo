@@ -91,3 +91,8 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the architecture and mile
 ## License
 
 MIT. See [`LICENSE`](LICENSE).
+
+
+## Optional BotAI
+
+Engo can use the separate BotAI service without depending on it for normal IRC operation. Set `ENGO_BOTAI_URL` to enable the `!ai <message>` command; `ENGO_BOTAI_EXPERT` defaults to `auto`. See `docs/M1.1-BOTAI.md`.

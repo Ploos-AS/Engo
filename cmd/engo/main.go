@@ -72,6 +72,8 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 	}
 	defer client.Close()
 	defer pbstate.SetActions(nil, nil)
+	defer pbstate.SetModules(nil)
+	defer pbstate.SetModuleLifecycle(nil)
 	pbstate.SetConnected(true)
 	pbstate.Log("info", "IRC session connected")
 	pbstate.SetActions(client.Join, client.Part)
@@ -139,7 +141,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		}
 	}
 	pbstate.SetModules(moduleList)
-	pbstate.SetModuleAction(moduleAction)
+	if cfg.ScriptsDir!=""{pbstate.SetModuleLifecycle(moduleAction,"reload","enable","disable")}else{pbstate.SetModuleLifecycle(moduleAction,"reload")}
 	client.OnMessage(func(m irc.Message) error {
 		pbstate.CountRX()
 		pbstate.Observe(m.Command, m.Nick, m.Params, m.Trailing)

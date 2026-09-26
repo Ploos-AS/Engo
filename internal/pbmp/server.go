@@ -26,6 +26,7 @@ type State struct {
 	part          func(string, string) error
 	modules       func() []map[string]any
 	moduleAction  func(string, string) error
+	moduleCaps    map[string]bool
 	started       atomic.Int64
 	rxLines       atomic.Uint64
 	reconnects    atomic.Uint64
@@ -41,6 +42,9 @@ func NewState(nick, network string, channels ...string) *State {
 	return s
 }
 func (s *State) SetConfig(v map[string]any) { s.mu.Lock(); s.config = v; s.mu.Unlock() }
+func (s *State) SetModuleLifecycle(fn func(string, string) error, caps ...string) {
+	s.mu.Lock(); s.moduleAction=fn; s.moduleCaps=make(map[string]bool,len(caps)); for _,cap:=range caps{s.moduleCaps[cap]=true}; s.mu.Unlock()
+}
 func (s *State) SetModuleAction(fn func(string, string) error) {
 	s.mu.Lock()
 	s.moduleAction = fn
@@ -179,7 +183,7 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	case "pbmp.info":
 		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
 	case "capabilities.list":
-		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable", "metrics.read", "logs.read", "config.schema", "config.read"}}
+		caps:=[]string{"pbmp.info","capabilities.list","bot.info","networks.list","channels.list","channels.join","channels.part","modules.list","metrics.read","logs.read","config.schema","config.read"};s.mu.RLock();for _,op:=range []string{"reload","enable","disable"}{if s.moduleCaps[op]{caps=append(caps,"modules."+op)}};s.mu.RUnlock();r.Result=map[string]any{"capabilities":caps}
 	case "config.schema":
 		r.Result = map[string]any{"fields": []map[string]any{{"name": "server", "type": "string", "reload": "reconnect"}, {"name": "nick", "type": "string", "reload": "reconnect"}, {"name": "user", "type": "string", "reload": "reconnect"}, {"name": "realname", "type": "string", "reload": "reconnect"}, {"name": "tls", "type": "boolean", "reload": "reconnect"}, {"name": "channels", "type": "array", "reload": "reconnect"}, {"name": "script", "type": "string", "reload": "restart"}, {"name": "scripts_dir", "type": "string", "reload": "restart"}, {"name": "reconnect_min", "type": "string", "reload": "restart"}, {"name": "reconnect_max", "type": "string", "reload": "restart"}}}
 	case "config.read":
@@ -213,8 +217,9 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		}
 		s.mu.RLock()
 		action := s.moduleAction
+		allowed:=s.moduleCaps[strings.TrimPrefix(q.Method, "modules.")]
 		s.mu.RUnlock()
-		if action == nil {
+		if action == nil || !allowed {
 			r.OK = false
 			r.Error = map[string]any{"code": "not_supported", "message": "module lifecycle unavailable"}
 			break

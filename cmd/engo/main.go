@@ -52,7 +52,7 @@ func main() {
 	delay := cfg.ReconnectMin
 	for {
 		started := time.Now()
-		err := runIRC(ctx, cfg, pbstate)
+		err := runIRC(ctx, cfg, pbstate, aiStats)
 		pbstate.SetConnected(false)
 		pbstate.Log("warn", "IRC session disconnected")
 		pbstate.CountReconnect()
@@ -77,7 +77,7 @@ func main() {
 	}
 }
 
-func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
+func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats *botaiclient.Stats) error {
 	client, err := irc.Dial(irc.Config{Server: cfg.Server, Nick: cfg.Nick, User: cfg.User, RealName: cfg.RealName, TLS: cfg.TLS, SASLUsername: cfg.SASLUsername, SASLPassword: cfg.SASLPassword, Capabilities: cfg.IRCCapabilities, Channels: cfg.Channels})
 	if err != nil {
 		return err

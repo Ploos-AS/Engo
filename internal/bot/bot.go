@@ -41,13 +41,15 @@ type Bot struct {
 	mu          sync.RWMutex
 	handlers    map[string][]Handler
 	commands    map[string]Handler
+	builtinHandlers map[string][]Handler
+	builtinCommands map[string]Handler
 	prefix      string
 	accounts    map[string]accountIdentity
 	caseMapping string
 }
 
 func New(sender Sender) *Bot {
-	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), prefix: "!", accounts: make(map[string]accountIdentity), caseMapping: "rfc1459"}
+	return &Bot{sender: sender, handlers: make(map[string][]Handler), commands: make(map[string]Handler), builtinHandlers: make(map[string][]Handler), builtinCommands: make(map[string]Handler), prefix: "!", accounts: make(map[string]accountIdentity), caseMapping: "rfc1459"}
 }
 
 func NewRegistry() Registry {
@@ -68,6 +70,20 @@ func (b *Bot) On(name string, handler Handler) {
 	if name != "" && handler != nil {
 		b.handlers[name] = append(b.handlers[name], handler)
 	}
+}
+
+func (b *Bot) BuiltinOn(name string, handler Handler) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name != "" && handler != nil { b.builtinHandlers[name] = append(b.builtinHandlers[name], handler) }
+}
+
+func (b *Bot) BuiltinCommand(name string, handler Handler) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	name = strings.ToLower(strings.TrimSpace(name))
+	if name != "" && handler != nil { b.builtinCommands[name] = handler }
 }
 
 func (b *Bot) Command(name string, handler Handler) {
@@ -164,7 +180,8 @@ func (b *Bot) Handle(m irc.Message) error {
 	}
 
 	b.mu.RLock()
-	handlers := append([]Handler(nil), b.handlers[ev.Name]...)
+	handlers := append([]Handler(nil), b.builtinHandlers[ev.Name]...)
+	handlers = append(handlers, b.handlers[ev.Name]...)
 	var command Handler
 	var commandName string
 	var commandArgs []string
@@ -173,7 +190,8 @@ func (b *Bot) Handle(m irc.Message) error {
 		if len(fields) > 0 {
 			commandName = strings.ToLower(fields[0])
 			commandArgs = append([]string(nil), fields[1:]...)
-			command = b.commands[commandName]
+			command = b.builtinCommands[commandName]
+			if command == nil { command = b.commands[commandName] }
 		}
 	}
 	b.mu.RUnlock()

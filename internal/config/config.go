@@ -37,6 +37,7 @@ type Config struct {
 	BotAIURL              string
 	BotAIExpert           string
 	BotAITimeout          time.Duration
+	BotAIHistoryMessages  int64
 	Channels              []string
 }
 
@@ -70,6 +71,7 @@ func FromEnv() Config {
 		BotAIURL:              strings.TrimSpace(os.Getenv("ENGO_BOTAI_URL")),
 		BotAIExpert:           getenv("ENGO_BOTAI_EXPERT", "auto"),
 		BotAITimeout:          durationEnv("ENGO_BOTAI_TIMEOUT", 30*time.Second),
+		BotAIHistoryMessages:  int64Env("ENGO_BOTAI_HISTORY_MESSAGES", 10),
 		Channels:              csvEnv("ENGO_CHANNELS"),
 	}
 }
@@ -121,6 +123,9 @@ func (c Config) Validate() error {
 	}
 	if c.BotAIURL != "" && c.BotAITimeout <= 0 {
 		return fmt.Errorf("ENGO_BOTAI_TIMEOUT must be positive")
+	}
+	if c.BotAIURL != "" && (c.BotAIHistoryMessages < 0 || c.BotAIHistoryMessages > 20) {
+		return fmt.Errorf("ENGO_BOTAI_HISTORY_MESSAGES must be between 0 and 20")
 	}
 	if c.BotAIURL != "" && strings.TrimSpace(c.BotAIExpert) == "" {
 		return fmt.Errorf("ENGO_BOTAI_EXPERT must not be empty")

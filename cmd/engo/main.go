@@ -31,6 +31,16 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	pbstate := pbmp.NewState(cfg.Nick, cfg.Server, cfg.Channels...)
+	aiStats := botaiclient.NewStats(cfg.BotAIURL != "")
+	pbstate.SetBotAI(func() map[string]any {
+		out := aiStats.Snapshot()
+		out["api_version"] = botaiclient.APIVersion
+		out["conversation"] = cfg.BotAIConversation
+		out["history_messages"] = cfg.BotAIHistoryMessages
+		out["max_concurrent"] = cfg.BotAIMaxConcurrent
+		out["cooldown"] = cfg.BotAICooldown.String()
+		return out
+	})
 	pbstate.SetConfig(map[string]any{"server": cfg.Server, "nick": cfg.Nick, "user": cfg.User, "realname": cfg.RealName, "tls": cfg.TLS, "channels": cfg.Channels, "script": cfg.Script, "scripts_dir": cfg.ScriptsDir, "reconnect_min": cfg.ReconnectMin.String(), "reconnect_max": cfg.ReconnectMax.String()})
 	if cfg.PBMPSocket != "" {
 		go func() {
@@ -93,6 +103,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 				fmt.Fprintf(os.Stderr, "engo: BotAI unavailable/incompatible; continuing without AI: %v\n", compatErr)
 				pbstate.Log("warn", "BotAI unavailable or incompatible; IRC operation continues")
 			} else {
+				aiStats.SetCompatible(true)
 				conversations := botaiclient.NewConversations(int(cfg.BotAIHistoryMessages))
 				aiLimiter := botaiclient.NewLimiter(int(cfg.BotAIMaxConcurrent), cfg.BotAICooldown)
 				b.BuiltinCommand("aireset", func(ev bot.Event) error {
@@ -114,10 +125,13 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 					key := aiConversationKey(ev)
 					release, ok := aiLimiter.TryAcquire(key)
 					if !ok {
+						aiStats.Limited()
 						return b.Notice(ev.Nick, "BotAI is busy; try again shortly")
 					}
 					defer release()
+					aiStats.Request()
 					reply, err := ai.ChatWithHistory(aiCtx, cfg.BotAIExpert, conversations.History(key), message)
+					aiStats.Complete(err)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "engo: BotAI request failed: %v\n", err)
 						return b.Notice(ev.Nick, "BotAI is temporarily unavailable")
@@ -140,10 +154,13 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 						key := aiConversationKey(ev)
 						release, ok := aiLimiter.TryAcquire(key)
 						if !ok {
+							aiStats.Limited()
 							return nil
 						}
 						defer release()
+						aiStats.Request()
 						reply, err := ai.ChatWithHistory(aiCtx, cfg.BotAIExpert, conversations.History(key), message)
+						aiStats.Complete(err)
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "engo: conversational BotAI request failed: %v\n", err)
 							return nil

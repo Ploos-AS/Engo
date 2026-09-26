@@ -74,7 +74,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 	b := bot.New(client)
 	var reloadScripts func() error
 	var moduleList func() []map[string]any
-	var moduleAction func(string,string) error
+	var moduleAction func(string, string) error
 	if cfg.ScriptsDir != "" {
 		mgr := script.NewManagerWithCapabilities(cfg.ScriptsDir, b, cfg.ScriptMaxAllocs, cfg.StateDir, cfg.HTTPAllow, cfg.HTTPTimeout, cfg.HTTPMaxBody)
 		mgr.SetPermissions(cfg.AccountPermissions)
@@ -93,7 +93,17 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		}
 		reloadScripts = mgr.ReloadAll
 		moduleList = mgr.Modules
-		moduleAction=func(op,id string)error{switch op{case "reload":return mgr.Reload(id);case "enable":return mgr.Enable(id);case "disable":return mgr.Disable(id)};return fmt.Errorf("unsupported module action")}
+		moduleAction = func(op, id string) error {
+			switch op {
+			case "reload":
+				return mgr.Reload(id)
+			case "enable":
+				return mgr.Enable(id)
+			case "disable":
+				return mgr.Disable(id)
+			}
+			return fmt.Errorf("unsupported module action")
+		}
 	} else {
 		rt := script.NewLimited(cfg.Script, b, cfg.ScriptMaxAllocs)
 		rt.SetStore(script.NewStore(cfg.StateDir, scriptNamespace(cfg.Script)))
@@ -111,7 +121,15 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		reloadScripts = rt.Reload
 		name := filepathBase(cfg.Script)
 		caps := append([]string(nil), cfg.ScriptCapabilities[name]...)
-		moduleAction=func(op,id string)error{if id!=name{return fmt.Errorf("unknown module")};if op!="reload"{return fmt.Errorf("operation unavailable in single-script mode")};return rt.Reload}
+		moduleAction = func(op, id string) error {
+			if id != name {
+				return fmt.Errorf("unknown module")
+			}
+			if op != "reload" {
+				return fmt.Errorf("operation unavailable in single-script mode")
+			}
+			return rt.Reload
+		}
 		moduleList = func() []map[string]any {
 			return []map[string]any{{"id": name, "runtime": "tengo", "state": "active", "capabilities": caps}}
 		}

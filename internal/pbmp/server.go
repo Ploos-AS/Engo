@@ -32,6 +32,7 @@ type State struct {
 	reconnects    atomic.Uint64
 	logs          []map[string]string
 	config        map[string]any
+	botAI         func() map[string]any
 }
 
 func NewState(nick, network string, channels ...string) *State {
@@ -41,6 +42,7 @@ func NewState(nick, network string, channels ...string) *State {
 	}
 	return s
 }
+func (s *State) SetBotAI(fn func() map[string]any) { s.mu.Lock(); s.botAI = fn; s.mu.Unlock() }
 func (s *State) SetConfig(v map[string]any) { s.mu.Lock(); s.config = v; s.mu.Unlock() }
 func (s *State) SetModuleLifecycle(fn func(string, string) error, caps ...string) {
 	s.mu.Lock()
@@ -189,7 +191,7 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	case "pbmp.info":
 		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
 	case "capabilities.list":
-		caps := []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "metrics.read", "logs.read", "config.schema", "config.read"}
+		caps := []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "metrics.read", "botai.status", "logs.read", "config.schema", "config.read"}
 		s.mu.RLock()
 		for _, op := range []string{"reload", "enable", "disable"} {
 			if s.moduleCaps[op] {
@@ -216,6 +218,13 @@ func Handle(in []byte, s *State) ([]byte, error) {
 			up = time.Now().Unix() - s.started.Load()
 		}
 		r.Result = map[string]any{"metrics": map[string]any{"irc.rx_lines": s.rxLines.Load(), "irc.reconnects": s.reconnects.Load(), "session.uptime_seconds": up}}
+	case "botai.status":
+		s.mu.RLock()
+		fn := s.botAI
+		s.mu.RUnlock()
+		status := map[string]any{"enabled": false}
+		if fn != nil { status = fn() }
+		r.Result = map[string]any{"botai": status}
 	case "bot.info":
 		state := "offline"
 		if s.Connected() {

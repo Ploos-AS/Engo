@@ -122,7 +122,7 @@ func (c Config) Validate() error {
 	if c.BotAIURL != "" && c.BotAITimeout <= 0 {
 		return fmt.Errorf("ENGO_BOTAI_TIMEOUT must be positive")
 	}
-	if strings.TrimSpace(c.BotAIExpert) == "" {
+	if c.BotAIURL != "" && strings.TrimSpace(c.BotAIExpert) == "" {
 		return fmt.Errorf("ENGO_BOTAI_EXPERT must not be empty")
 	}
 	if c.ReconnectMin <= 0 || c.ReconnectMax < c.ReconnectMin {

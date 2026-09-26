@@ -34,6 +34,9 @@ type Config struct {
 	ReconnectMin          time.Duration
 	ReconnectMax          time.Duration
 	PBMPSocket            string
+	BotAIURL              string
+	BotAIExpert           string
+	BotAITimeout          time.Duration
 	Channels              []string
 }
 
@@ -64,6 +67,9 @@ func FromEnv() Config {
 		ReconnectMin:          durationEnv("ENGO_RECONNECT_MIN", 2*time.Second),
 		ReconnectMax:          durationEnv("ENGO_RECONNECT_MAX", 2*time.Minute),
 		PBMPSocket:            os.Getenv("ENGO_PBMP_SOCKET"),
+		BotAIURL:              strings.TrimSpace(os.Getenv("ENGO_BOTAI_URL")),
+		BotAIExpert:           getenv("ENGO_BOTAI_EXPERT", "auto"),
+		BotAITimeout:          durationEnv("ENGO_BOTAI_TIMEOUT", 30*time.Second),
 		Channels:              csvEnv("ENGO_CHANNELS"),
 	}
 }
@@ -112,6 +118,12 @@ func (c Config) Validate() error {
 			return fmt.Errorf("duplicate ENGO_IRC_CAPABILITIES capability %q", name)
 		}
 		seenIRCCaps[name] = true
+	}
+	if c.BotAIURL != "" && c.BotAITimeout <= 0 {
+		return fmt.Errorf("ENGO_BOTAI_TIMEOUT must be positive")
+	}
+	if strings.TrimSpace(c.BotAIExpert) == "" {
+		return fmt.Errorf("ENGO_BOTAI_EXPERT must not be empty")
 	}
 	if c.ReconnectMin <= 0 || c.ReconnectMax < c.ReconnectMin {
 		return fmt.Errorf("invalid reconnect interval")

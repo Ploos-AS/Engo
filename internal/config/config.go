@@ -39,6 +39,8 @@ type Config struct {
 	BotAITimeout          time.Duration
 	BotAIHistoryMessages  int64
 	BotAIConversation     bool
+	BotAIMaxConcurrent    int64
+	BotAICooldown         time.Duration
 	Channels              []string
 }
 
@@ -74,6 +76,8 @@ func FromEnv() Config {
 		BotAITimeout:          durationEnv("ENGO_BOTAI_TIMEOUT", 30*time.Second),
 		BotAIHistoryMessages:  int64Env("ENGO_BOTAI_HISTORY_MESSAGES", 10),
 		BotAIConversation:     getenv("ENGO_BOTAI_CONVERSATION", "0") == "1",
+		BotAIMaxConcurrent:    int64Env("ENGO_BOTAI_MAX_CONCURRENT", 2),
+		BotAICooldown:         durationEnv("ENGO_BOTAI_COOLDOWN", 2*time.Second),
 		Channels:              csvEnv("ENGO_CHANNELS"),
 	}
 }
@@ -128,6 +132,12 @@ func (c Config) Validate() error {
 	}
 	if c.BotAIURL != "" && (c.BotAIHistoryMessages < 0 || c.BotAIHistoryMessages > 20) {
 		return fmt.Errorf("ENGO_BOTAI_HISTORY_MESSAGES must be between 0 and 20")
+	}
+	if c.BotAIURL != "" && c.BotAIMaxConcurrent < 1 {
+		return fmt.Errorf("ENGO_BOTAI_MAX_CONCURRENT must be at least 1")
+	}
+	if c.BotAIURL != "" && c.BotAICooldown < 0 {
+		return fmt.Errorf("ENGO_BOTAI_COOLDOWN must not be negative")
 	}
 	if c.BotAIURL != "" && strings.TrimSpace(c.BotAIExpert) == "" {
 		return fmt.Errorf("ENGO_BOTAI_EXPERT must not be empty")

@@ -113,7 +113,9 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 					message := strings.Join(ev.Args, " ")
 					key := aiConversationKey(ev)
 					release, ok := aiLimiter.TryAcquire(key)
-					if !ok { return b.Notice(ev.Nick, "BotAI is busy; try again shortly") }
+					if !ok {
+						return b.Notice(ev.Nick, "BotAI is busy; try again shortly")
+					}
 					defer release()
 					reply, err := ai.ChatWithHistory(aiCtx, cfg.BotAIExpert, conversations.History(key), message)
 					if err != nil {
@@ -137,7 +139,9 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 						defer cancel()
 						key := aiConversationKey(ev)
 						release, ok := aiLimiter.TryAcquire(key)
-						if !ok { return nil }
+						if !ok {
+							return nil
+						}
 						defer release()
 						reply, err := ai.ChatWithHistory(aiCtx, cfg.BotAIExpert, conversations.History(key), message)
 						if err != nil {

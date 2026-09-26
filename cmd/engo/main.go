@@ -94,9 +94,13 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 				pbstate.Log("warn", "BotAI unavailable or incompatible; IRC operation continues")
 			} else {
 				b.Command("ai", func(ev bot.Event) error {
-					if len(ev.Args) == 0 { return b.Notice(ev.Nick, "usage: !ai <message>") }
+					if len(ev.Args) == 0 {
+						return b.Notice(ev.Nick, "usage: !ai <message>")
+					}
 					replyTarget := ev.Target
-					if replyTarget == "" || !strings.HasPrefix(replyTarget, "#") { replyTarget = ev.Nick }
+					if replyTarget == "" || !strings.HasPrefix(replyTarget, "#") {
+						replyTarget = ev.Nick
+					}
 					aiCtx, cancel := context.WithTimeout(ctx, cfg.BotAITimeout)
 					defer cancel()
 					reply, err := ai.Chat(aiCtx, cfg.BotAIExpert, strings.Join(ev.Args, " "))

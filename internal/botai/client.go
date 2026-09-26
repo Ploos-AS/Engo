@@ -13,6 +13,11 @@ import (
 
 const APIVersion = "1.0.0"
 
+type Message struct {
+	Role string `json:"role"`
+	Content string `json:"content"`
+}
+
 type Client struct {
 	baseURL string
 	http    *http.Client
@@ -43,19 +48,20 @@ func (c *Client) Compatible(ctx context.Context) error {
 }
 
 func (c *Client) Chat(ctx context.Context, expert, message string) (string, error) {
-	in := map[string]string{"message": strings.TrimSpace(message)}
-	if expert = strings.TrimSpace(expert); expert != "" {
-		in["expert"] = expert
-	}
-	var out struct {
-		Text string `json:"text"`
-	}
-	if in["message"] == "" {
-		return "", fmt.Errorf("message is required")
-	}
-	if err := c.request(ctx, http.MethodPost, "/v1/chat", in, &out); err != nil {
-		return "", err
-	}
+	return c.ChatWithHistory(ctx, expert, nil, message)
+}
+
+func (c *Client) ChatWithHistory(ctx context.Context, expert string, history []Message, message string) (string, error) {
+	message = strings.TrimSpace(message)
+	if message == "" { return "", fmt.Errorf("message is required") }
+	if len(history) > 20 { return "", fmt.Errorf("history exceeds 20 messages") }
+	in := struct {
+		Expert string `json:"expert,omitempty"`
+		History []Message `json:"history,omitempty"`
+		Message string `json:"message"`
+	}{Expert:strings.TrimSpace(expert), History:history, Message:message}
+	var out struct{ Text string `json:"text"` }
+	if err := c.request(ctx, http.MethodPost, "/v1/chat", in, &out); err != nil { return "", err }
 	return out.Text, nil
 }
 

@@ -353,7 +353,7 @@ func paramsString(m map[string]any, keys ...string) (string, string, string) {
 	return v[0], v[1], v[2]
 }
 func validPBMPChannel(s string) bool {
-	return len(s) > 1 && len(s) <= 200 && strings.ContainsRune("#&+!", rune(s[0])) && !strings.ContainsAny(s, " ,\\x00\\r\\n")
+	return len(s) > 1 && len(s) <= 200 && strings.ContainsRune("#&+!", rune(s[0])) && !strings.ContainsAny(s, " ,\x00\r\n")
 }
 func appendJSONLine(v any) ([]byte, error) {
 	b, e := json.Marshal(v)

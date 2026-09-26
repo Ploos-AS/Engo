@@ -20,6 +20,7 @@ type State struct {
 	mu            sync.RWMutex
 	joined        map[string]bool
 	dynamic       map[string]string
+	wanted        map[string]bool
 	parting       map[string]bool
 	join          func(string) error
 	part          func(string, string) error
@@ -33,7 +34,7 @@ type State struct {
 }
 
 func NewState(nick, network string, channels ...string) *State {
-	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool), dynamic: make(map[string]string), parting: make(map[string]bool)}
+	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool), dynamic: make(map[string]string), wanted: make(map[string]bool), parting: make(map[string]bool)}
 }
 func (s *State) SetConfig(v map[string]any) { s.mu.Lock(); s.config = v; s.mu.Unlock() }
 func (s *State) SetModuleAction(fn func(string, string) error) {
@@ -129,7 +130,8 @@ func (s *State) ChannelState(name string) string {
 	s.mu.RUnlock()
 	if joined { return "joined" }
 	if parting { return "parting" }
-	return "joining"
+	if wanted:=s.wanted[key]; wanted { return "joining" }
+	return "configured"
 }
 func (s *State) Connected() bool { return s.connected.Load() }
 
@@ -246,11 +248,11 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		state := "joining"
 		if q.Method == "channels.join" {
 			err = join(name)
-			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;delete(s.parting,irc.Casefold(name));s.mu.Unlock()}
+			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;s.wanted[irc.Casefold(name)]=true;delete(s.parting,irc.Casefold(name));s.mu.Unlock()}
 		} else {
 			err = part(name, param(q.Params, "reason"))
 			state = "parting"
-			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;s.parting[irc.Casefold(name)]=true;s.mu.Unlock()}
+			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;s.wanted[irc.Casefold(name)]=false;s.parting[irc.Casefold(name)]=true;s.mu.Unlock()}
 		}
 		if err != nil {
 			r.OK = false

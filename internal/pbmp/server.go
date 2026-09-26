@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type State struct {
@@ -21,6 +22,9 @@ type State struct {
 	part          func(string, string) error
 	modules       func() []map[string]any
 	moduleAction  func(string, string) error
+	started       atomic.Int64
+	rxLines       atomic.Uint64
+	reconnects    atomic.Uint64
 }
 
 func NewState(nick, network string, channels ...string) *State {
@@ -38,8 +42,11 @@ func (s *State) SetActions(join func(string) error, part func(string, string) er
 	s.part = part
 	s.mu.Unlock()
 }
+func (s *State) CountRX(){s.rxLines.Add(1)}
+func (s *State) CountReconnect(){s.reconnects.Add(1)}
 func (s *State) SetConnected(v bool) {
 	s.connected.Store(v)
+	if v { s.started.Store(time.Now().Unix()) }
 	if !v {
 		s.mu.Lock()
 		clear(s.joined)
@@ -123,7 +130,9 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	case "pbmp.info":
 		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
 	case "capabilities.list":
-		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable"}}
+		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable", "metrics.read"}}
+	case "metrics.read":
+		up:=int64(0); if s.Connected(){up=time.Now().Unix()-s.started.Load()}; r.Result=map[string]any{"metrics":map[string]any{"irc.rx_lines":s.rxLines.Load(),"irc.reconnects":s.reconnects.Load(),"session.uptime_seconds":up}}
 	case "bot.info":
 		state := "offline"
 		if s.Connected() {

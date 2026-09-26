@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net"
 	"os"
+	"github.com/Ploos-AS/Engo/internal/irc"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -78,7 +79,7 @@ func (s *State) SetConnected(v bool) {
 	}
 }
 func (s *State) Observe(command, nick string, params []string, trailing string) {
-	if !strings.EqualFold(nick, s.Nick) && command != "KICK" {
+	if !irc.EqualRFC1459(nick, s.Nick) && command != "KICK" {
 		return
 	}
 	var ch string
@@ -89,24 +90,24 @@ func (s *State) Observe(command, nick string, params []string, trailing string) 
 		} else {
 			ch = trailing
 		}
-		if strings.EqualFold(nick, s.Nick) && ch != "" {
+		if irc.EqualRFC1459(nick, s.Nick) && ch != "" {
 			s.mu.Lock()
-			s.joined[strings.ToLower(ch)] = true
+			s.joined[irc.Casefold(ch)] = true
 			s.mu.Unlock()
 		}
 	case "PART":
 		if len(params) > 0 {
 			ch = params[0]
 		}
-		if strings.EqualFold(nick, s.Nick) && ch != "" {
+		if irc.EqualRFC1459(nick, s.Nick) && ch != "" {
 			s.mu.Lock()
-			delete(s.joined, strings.ToLower(ch))
+			delete(s.joined, irc.Casefold(ch))
 			s.mu.Unlock()
 		}
 	case "KICK":
-		if len(params) >= 2 && strings.EqualFold(params[1], s.Nick) {
+		if len(params) >= 2 && irc.EqualRFC1459(params[1], s.Nick) {
 			s.mu.Lock()
-			delete(s.joined, strings.ToLower(params[0]))
+			delete(s.joined, irc.Casefold(params[0]))
 			s.mu.Unlock()
 		}
 	}
@@ -116,7 +117,7 @@ func (s *State) ChannelState(name string) string {
 		return "disconnected"
 	}
 	s.mu.RLock()
-	joined := s.joined[strings.ToLower(name)]
+	joined := s.joined[irc.Casefold(name)]
 	s.mu.RUnlock()
 	if joined {
 		return "joined"

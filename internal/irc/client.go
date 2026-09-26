@@ -475,5 +475,6 @@ func authenticateChunks(encoded string) []string {
 }
 
 func rfc1459Fold(s string)string{var b strings.Builder;b.Grow(len(s));for _,r:=range s{switch{case r>='A'&&r<='Z':r+=32;case r=='[':r='{';case r==']':r='}';case r=='\\\\':r='|';case r=='^':r='~'};b.WriteRune(r)};return b.String()}
+func Casefold(s string)string{return rfc1459Fold(s)}
 func EqualRFC1459(a,b string)bool{return rfc1459Fold(a)==rfc1459Fold(b)}
 func PrefixIsNick(prefix,nick string)bool{if i:=strings.IndexAny(prefix,"!@");i>=0{prefix=prefix[:i]};return EqualRFC1459(prefix,nick)}

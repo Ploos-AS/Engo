@@ -34,7 +34,11 @@ type State struct {
 }
 
 func NewState(nick, network string, channels ...string) *State {
-	s:=&State{Nick:nick,Network:network,Channels:append([]string(nil),channels...),joined:make(map[string]bool),dynamic:make(map[string]string),wanted:make(map[string]bool),parting:make(map[string]bool)};for _,ch:=range channels{s.wanted[irc.Casefold(ch)]=true};return s
+	s := &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool), dynamic: make(map[string]string), wanted: make(map[string]bool), parting: make(map[string]bool)}
+	for _, ch := range channels {
+		s.wanted[irc.Casefold(ch)] = true
+	}
+	return s
 }
 func (s *State) SetConfig(v map[string]any) { s.mu.Lock(); s.config = v; s.mu.Unlock() }
 func (s *State) SetModuleAction(fn func(string, string) error) {
@@ -75,7 +79,12 @@ func (s *State) SetConnected(v bool) {
 	if v {
 		s.started.Store(time.Now().Unix())
 	}
-	if !v { s.mu.Lock(); clear(s.joined); clear(s.parting); s.mu.Unlock() }
+	if !v {
+		s.mu.Lock()
+		clear(s.joined)
+		clear(s.parting)
+		s.mu.Unlock()
+	}
 }
 func (s *State) Observe(command, nick string, params []string, trailing string) {
 	if !irc.EqualRFC1459(nick, s.Nick) && command != "KICK" {

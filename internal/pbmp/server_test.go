@@ -78,4 +78,24 @@ func TestDynamicChannelLifecycle(t *testing.T) {
 	}
 }
 
-func TestDesiredStateSurvivesReconnect(t *testing.T){s:=NewState("engo","irc.example","#boot");s.SetConnected(true);if s.ChannelState("#BOOT")!="joining"{t.Fatalf("startup=%s",s.ChannelState("#BOOT"))};s.SetActions(func(string)error{return nil},func(string,string)error{return nil});_,_=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"p\",\"method\":\"channels.part\",\"params\":{\"network\":\"irc.example\",\"name\":\"#boot\"}}"),s);s.Observe("PART","engo",[]string{"#BOOT"},"");if s.ChannelState("#boot")!="configured"{t.Fatalf("parted=%s",s.ChannelState("#boot"))};s.SetConnected(false);if s.ChannelState("#boot")!="disconnected"{t.Fatalf("offline=%s",s.ChannelState("#boot"))};s.SetConnected(true);if s.ChannelState("#boot")!="configured"{t.Fatalf("reconnect=%s",s.ChannelState("#boot"))}}
+func TestDesiredStateSurvivesReconnect(t *testing.T) {
+	s := NewState("engo", "irc.example", "#boot")
+	s.SetConnected(true)
+	if s.ChannelState("#BOOT") != "joining" {
+		t.Fatalf("startup=%s", s.ChannelState("#BOOT"))
+	}
+	s.SetActions(func(string) error { return nil }, func(string, string) error { return nil })
+	_, _ = Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"p\",\"method\":\"channels.part\",\"params\":{\"network\":\"irc.example\",\"name\":\"#boot\"}}"), s)
+	s.Observe("PART", "engo", []string{"#BOOT"}, "")
+	if s.ChannelState("#boot") != "configured" {
+		t.Fatalf("parted=%s", s.ChannelState("#boot"))
+	}
+	s.SetConnected(false)
+	if s.ChannelState("#boot") != "disconnected" {
+		t.Fatalf("offline=%s", s.ChannelState("#boot"))
+	}
+	s.SetConnected(true)
+	if s.ChannelState("#boot") != "configured" {
+		t.Fatalf("reconnect=%s", s.ChannelState("#boot"))
+	}
+}

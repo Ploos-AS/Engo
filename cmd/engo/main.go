@@ -29,7 +29,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	pbstate := pbmp.NewState(cfg.Nick, cfg.Server, cfg.Channels...)
-	pbstate.SetConfig(map[string]any{"server":cfg.Server,"nick":cfg.Nick,"user":cfg.User,"realname":cfg.RealName,"tls":cfg.TLS,"channels":cfg.Channels,"script":cfg.Script,"scripts_dir":cfg.ScriptsDir,"reconnect_min":cfg.ReconnectMin.String(),"reconnect_max":cfg.ReconnectMax.String()})
+	pbstate.SetConfig(map[string]any{"server": cfg.Server, "nick": cfg.Nick, "user": cfg.User, "realname": cfg.RealName, "tls": cfg.TLS, "channels": cfg.Channels, "script": cfg.Script, "scripts_dir": cfg.ScriptsDir, "reconnect_min": cfg.ReconnectMin.String(), "reconnect_max": cfg.ReconnectMax.String()})
 	if cfg.PBMPSocket != "" {
 		go func() {
 			if err := pbmp.Serve(cfg.PBMPSocket, pbstate); err != nil {

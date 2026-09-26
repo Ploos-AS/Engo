@@ -4,6 +4,10 @@ Engo is an IRC bot implemented in Go with [Tengo](https://github.com/d5/tengo) a
 
 M0–M4 established the project foundation, robust IRC lifecycle, Tengo event/command API, transactional script lifecycle, persistence, timers and constrained HTTP access. M5 adds IRCv3 capability negotiation plus capability- and account-based authorization. PBMP integration adds an optional local management interface shared with LuCa and BotWeb.
 
+## Standalone-first rule
+
+Engo MUST remain a fully functional IRC bot without PBMP, BotWeb, BotAI, or any other external Ploos service. PBMP management, BotWeb integration and BotAI capabilities are optional adapters/features only. Their absence, failure, or removal MUST NOT prevent normal IRC operation or make core bot functionality depend on an external control plane or AI service.
+
 ## Status
 
 **M5 — IRCv3 and permissions (implementation in progress; CI qualification pending)**
@@ -30,7 +34,7 @@ Implemented:
 - per-script capabilities (including explicit HTTP grants)
 - IRCv3 `account-tag`, `account-notify`, `extended-join` and `server-time` negotiation
 - account identity provenance tracking and fail-closed command permissions
-- optional standalone architecture; the future Engo Web control plane is not required to run Engo
+- optional standalone architecture; external control planes are not required to run Engo
 
 CI includes normal tests, race-detector tests, vet, Go build and Alpine container build. A current green GitHub Actions run has not yet been independently verified.
 

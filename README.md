@@ -102,3 +102,5 @@ M1.2 adds optional in-memory bounded BotAI context (`ENGO_BOTAI_HISTORY_MESSAGES
 M1.3 adds opt-in natural conversation with `ENGO_BOTAI_CONVERSATION=1`: PMs and explicit channel mentions can use BotAI while ordinary channel traffic and commands remain untouched. See `docs/M1.3-BOTAI-CONVERSATION.md`.
 
 M1.4 bounds BotAI traffic with `ENGO_BOTAI_MAX_CONCURRENT` (default 2) and per-conversation `ENGO_BOTAI_COOLDOWN` (default 2s). See `docs/M1.4-BOTAI-LIMITS.md`.
+
+M1.5 exposes privacy-safe, read-only BotAI operational status and counters through PBMP `botai.status`, suitable for optional BotWeb display. See `docs/M1.5-BOTAI-PBMP.md`.

@@ -141,7 +141,11 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 		}
 	}
 	pbstate.SetModules(moduleList)
-	if cfg.ScriptsDir!=""{pbstate.SetModuleLifecycle(moduleAction,"reload","enable","disable")}else{pbstate.SetModuleLifecycle(moduleAction,"reload")}
+	if cfg.ScriptsDir != "" {
+		pbstate.SetModuleLifecycle(moduleAction, "reload", "enable", "disable")
+	} else {
+		pbstate.SetModuleLifecycle(moduleAction, "reload")
+	}
 	client.OnMessage(func(m irc.Message) error {
 		pbstate.CountRX()
 		pbstate.Observe(m.Command, m.Nick, m.Params, m.Trailing)

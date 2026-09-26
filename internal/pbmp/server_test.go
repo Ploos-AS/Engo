@@ -100,4 +100,25 @@ func TestDesiredStateSurvivesReconnect(t *testing.T) {
 	}
 }
 
-func TestModuleCapabilitiesFollowRuntime(t *testing.T){s:=NewState("engo","irc.example");s.SetModuleLifecycle(func(string,string)error{return nil},"reload");b,_:=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"c\",\"method\":\"capabilities.list\",\"params\":{}}"),s);if !strings.Contains(string(b),"\"modules.reload\"")||strings.Contains(string(b),"\"modules.enable\""){t.Fatalf("single caps=%s",b)};b,_=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"e\",\"method\":\"modules.enable\",\"params\":{\"id\":\"x\"}}"),s);if !strings.Contains(string(b),"\"not_supported\""){t.Fatalf("enable=%s",b)};s.SetModuleLifecycle(func(string,string)error{return nil},"reload","enable","disable");b,_=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"m\",\"method\":\"capabilities.list\",\"params\":{}}"),s);if !strings.Contains(string(b),"\"modules.enable\"")||!strings.Contains(string(b),"\"modules.disable\""){t.Fatalf("multi caps=%s",b)};s.SetModuleLifecycle(nil);b,_=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"z\",\"method\":\"capabilities.list\",\"params\":{}}"),s);if strings.Contains(string(b),"\"modules.reload\""){t.Fatalf("stale caps=%s",b)}}
+func TestModuleCapabilitiesFollowRuntime(t *testing.T) {
+	s := NewState("engo", "irc.example")
+	s.SetModuleLifecycle(func(string, string) error { return nil }, "reload")
+	b, _ := Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"c\",\"method\":\"capabilities.list\",\"params\":{}}"), s)
+	if !strings.Contains(string(b), "\"modules.reload\"") || strings.Contains(string(b), "\"modules.enable\"") {
+		t.Fatalf("single caps=%s", b)
+	}
+	b, _ = Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"e\",\"method\":\"modules.enable\",\"params\":{\"id\":\"x\"}}"), s)
+	if !strings.Contains(string(b), "\"not_supported\"") {
+		t.Fatalf("enable=%s", b)
+	}
+	s.SetModuleLifecycle(func(string, string) error { return nil }, "reload", "enable", "disable")
+	b, _ = Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"m\",\"method\":\"capabilities.list\",\"params\":{}}"), s)
+	if !strings.Contains(string(b), "\"modules.enable\"") || !strings.Contains(string(b), "\"modules.disable\"") {
+		t.Fatalf("multi caps=%s", b)
+	}
+	s.SetModuleLifecycle(nil)
+	b, _ = Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"z\",\"method\":\"capabilities.list\",\"params\":{}}"), s)
+	if strings.Contains(string(b), "\"modules.reload\"") {
+		t.Fatalf("stale caps=%s", b)
+	}
+}

@@ -124,13 +124,19 @@ func (s *State) ChannelState(name string) string {
 		return "disconnected"
 	}
 	s.mu.RLock()
-	key:=irc.Casefold(name)
+	key := irc.Casefold(name)
 	joined := s.joined[key]
-	parting:=s.parting[key]
+	parting := s.parting[key]
 	s.mu.RUnlock()
-	if joined { return "joined" }
-	if parting { return "parting" }
-	if wanted:=s.wanted[key]; wanted { return "joining" }
+	if joined {
+		return "joined"
+	}
+	if parting {
+		return "parting"
+	}
+	if wanted := s.wanted[key]; wanted {
+		return "joining"
+	}
 	return "configured"
 }
 func (s *State) Connected() bool { return s.connected.Load() }
@@ -248,11 +254,23 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		state := "joining"
 		if q.Method == "channels.join" {
 			err = join(name)
-			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;s.wanted[irc.Casefold(name)]=true;delete(s.parting,irc.Casefold(name));s.mu.Unlock()}
+			if err == nil {
+				s.mu.Lock()
+				s.dynamic[irc.Casefold(name)] = name
+				s.wanted[irc.Casefold(name)] = true
+				delete(s.parting, irc.Casefold(name))
+				s.mu.Unlock()
+			}
 		} else {
 			err = part(name, param(q.Params, "reason"))
 			state = "parting"
-			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;s.wanted[irc.Casefold(name)]=false;s.parting[irc.Casefold(name)]=true;s.mu.Unlock()}
+			if err == nil {
+				s.mu.Lock()
+				s.dynamic[irc.Casefold(name)] = name
+				s.wanted[irc.Casefold(name)] = false
+				s.parting[irc.Casefold(name)] = true
+				s.mu.Unlock()
+			}
 		}
 		if err != nil {
 			r.OK = false
@@ -261,7 +279,22 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		}
 		r.Result = map[string]any{"network": network, "name": name, "state": state}
 	case "channels.list":
-		s.mu.RLock(); names:=append([]string(nil),s.Channels...);seen:=map[string]bool{};for _,n:=range names{seen[irc.Casefold(n)]=true};for k,n:=range s.dynamic{if !seen[k]{names=append(names,n)}};s.mu.RUnlock();channels := make([]any, 0, len(names));for _, name := range names { channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": s.ChannelState(name)}) }
+		s.mu.RLock()
+		names := append([]string(nil), s.Channels...)
+		seen := map[string]bool{}
+		for _, n := range names {
+			seen[irc.Casefold(n)] = true
+		}
+		for k, n := range s.dynamic {
+			if !seen[k] {
+				names = append(names, n)
+			}
+		}
+		s.mu.RUnlock()
+		channels := make([]any, 0, len(names))
+		for _, name := range names {
+			channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": s.ChannelState(name)})
+		}
 		r.Result = map[string]any{"channels": channels}
 	case "networks.list":
 		state := "disconnected"

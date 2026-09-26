@@ -2,8 +2,8 @@ package pbmp
 
 import (
 	"encoding/json"
-	"testing"
 	"strings"
+	"testing"
 )
 
 func TestHandle(t *testing.T) {
@@ -52,4 +52,28 @@ func TestChannelsList(t *testing.T) {
 	}
 }
 
-func TestDynamicChannelLifecycle(t *testing.T){s:=NewState("engo","irc.example","#configured");s.SetConnected(true);s.SetActions(func(string)error{return nil},func(string,string)error{return nil});b,e:=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"j\",\"method\":\"channels.join\",\"params\":{\"network\":\"irc.example\",\"name\":\"#Dyn[Ops]\"}}"),s);if e!=nil||!strings.Contains(string(b),"\"joining\""){t.Fatalf("join=%s err=%v",b,e)};s.Observe("JOIN","ENGO",[]string{"#dyn{ops}"},"");if s.ChannelState("#DYN[OPS]")!="joined"{t.Fatal("dynamic channel not joined")};b,_=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"l\",\"method\":\"channels.list\",\"params\":{}}"),s);if !strings.Contains(string(b),"#Dyn[Ops]"){t.Fatalf("dynamic missing: %s",b)};Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"p\",\"method\":\"channels.part\",\"params\":{\"network\":\"irc.example\",\"name\":\"#dyn{ops}\"}}"),s);if s.ChannelState("#Dyn[Ops]")!="parting"{t.Fatalf("state=%s",s.ChannelState("#Dyn[Ops]"))};s.Observe("PART","engo",[]string{"#dyn{ops}"},"");if s.ChannelState("#Dyn[Ops]")!="joining"{t.Fatalf("post-part state=%s",s.ChannelState("#Dyn[Ops]"))}}
+func TestDynamicChannelLifecycle(t *testing.T) {
+	s := NewState("engo", "irc.example", "#configured")
+	s.SetConnected(true)
+	s.SetActions(func(string) error { return nil }, func(string, string) error { return nil })
+	b, e := Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"j\",\"method\":\"channels.join\",\"params\":{\"network\":\"irc.example\",\"name\":\"#Dyn[Ops]\"}}"), s)
+	if e != nil || !strings.Contains(string(b), "\"joining\"") {
+		t.Fatalf("join=%s err=%v", b, e)
+	}
+	s.Observe("JOIN", "ENGO", []string{"#dyn{ops}"}, "")
+	if s.ChannelState("#DYN[OPS]") != "joined" {
+		t.Fatal("dynamic channel not joined")
+	}
+	b, _ = Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"l\",\"method\":\"channels.list\",\"params\":{}}"), s)
+	if !strings.Contains(string(b), "#Dyn[Ops]") {
+		t.Fatalf("dynamic missing: %s", b)
+	}
+	Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"p\",\"method\":\"channels.part\",\"params\":{\"network\":\"irc.example\",\"name\":\"#dyn{ops}\"}}"), s)
+	if s.ChannelState("#Dyn[Ops]") != "parting" {
+		t.Fatalf("state=%s", s.ChannelState("#Dyn[Ops]"))
+	}
+	s.Observe("PART", "engo", []string{"#dyn{ops}"}, "")
+	if s.ChannelState("#Dyn[Ops]") != "joining" {
+		t.Fatalf("post-part state=%s", s.ChannelState("#Dyn[Ops]"))
+	}
+}

@@ -43,7 +43,7 @@ func NewState(nick, network string, channels ...string) *State {
 	return s
 }
 func (s *State) SetBotAI(fn func() map[string]any) { s.mu.Lock(); s.botAI = fn; s.mu.Unlock() }
-func (s *State) SetConfig(v map[string]any) { s.mu.Lock(); s.config = v; s.mu.Unlock() }
+func (s *State) SetConfig(v map[string]any)        { s.mu.Lock(); s.config = v; s.mu.Unlock() }
 func (s *State) SetModuleLifecycle(fn func(string, string) error, caps ...string) {
 	s.mu.Lock()
 	s.moduleAction = fn
@@ -223,7 +223,9 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		fn := s.botAI
 		s.mu.RUnlock()
 		status := map[string]any{"enabled": false}
-		if fn != nil { status = fn() }
+		if fn != nil {
+			status = fn()
+		}
 		r.Result = map[string]any{"botai": status}
 	case "bot.info":
 		state := "offline"

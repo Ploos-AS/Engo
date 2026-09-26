@@ -123,13 +123,22 @@ func TestModuleCapabilitiesFollowRuntime(t *testing.T) {
 	}
 }
 
-
 func TestBotAIStatusIsPrivacySafe(t *testing.T) {
-	s:=NewState("engo","irc.example")
-	s.SetBotAI(func() map[string]any{return map[string]any{"enabled":true,"api_version":"1.0.0","requests":uint64(3)}})
-	out,err:=Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"1\",\"method\":\"botai.status\",\"params\":{}}"),s)
-	if err!=nil{t.Fatal(err)}
-	text:=string(out)
-	if !strings.Contains(text,"\"enabled\":true")||!strings.Contains(text,"\"requests\":3"){t.Fatalf("%s",text)}
-	for _,secret:=range []string{"message","history","prompt","api_key","url"}{if strings.Contains(text,"\""+secret+"\""){t.Fatalf("privacy-sensitive field %q exposed: %s",secret,text)}}
+	s := NewState("engo", "irc.example")
+	s.SetBotAI(func() map[string]any {
+		return map[string]any{"enabled": true, "api_version": "1.0.0", "requests": uint64(3)}
+	})
+	out, err := Handle([]byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"1\",\"method\":\"botai.status\",\"params\":{}}"), s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(out)
+	if !strings.Contains(text, "\"enabled\":true") || !strings.Contains(text, "\"requests\":3") {
+		t.Fatalf("%s", text)
+	}
+	for _, secret := range []string{"message", "history", "prompt", "api_key", "url"} {
+		if strings.Contains(text, "\""+secret+"\"") {
+			t.Fatalf("privacy-sensitive field %q exposed: %s", secret, text)
+		}
+	}
 }

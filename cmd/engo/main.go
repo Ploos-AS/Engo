@@ -94,12 +94,12 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 				pbstate.Log("warn", "BotAI unavailable or incompatible; IRC operation continues")
 			} else {
 				conversations := botaiclient.NewConversations(int(cfg.BotAIHistoryMessages))
-				b.Command("aireset", func(ev bot.Event) error {
+				b.BuiltinCommand("aireset", func(ev bot.Event) error {
 					key := aiConversationKey(ev)
 					conversations.Reset(key)
 					return b.Notice(ev.Nick, "BotAI conversation context cleared")
 				})
-				b.Command("ai", func(ev bot.Event) error {
+				b.BuiltinCommand("ai", func(ev bot.Event) error {
 					if len(ev.Args) == 0 {
 						return b.Notice(ev.Nick, "usage: !ai <message>")
 					}
@@ -119,6 +119,25 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 					conversations.AddExchange(key, message, reply)
 					return b.Say(replyTarget, reply)
 				})
+				if cfg.BotAIConversation {
+					b.BuiltinOn("message", func(ev bot.Event) error {
+						message, ok := aiConversationMessage(cfg.Nick, ev)
+						if !ok { return nil }
+						replyTarget := ev.Target
+						if replyTarget == "" || !strings.HasPrefix(replyTarget, "#") { replyTarget = ev.Nick }
+						aiCtx, cancel := context.WithTimeout(ctx, cfg.BotAITimeout)
+						defer cancel()
+						key := aiConversationKey(ev)
+						reply, err := ai.ChatWithHistory(aiCtx, cfg.BotAIExpert, conversations.History(key), message)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "engo: conversational BotAI request failed: %v\n", err)
+							return nil
+						}
+						conversations.AddExchange(key, message, reply)
+						return b.Say(replyTarget, reply)
+					})
+					pbstate.Log("info", "BotAI natural conversation mode enabled")
+				}
 				pbstate.Log("info", "BotAI integration enabled")
 			}
 		}
@@ -219,6 +238,24 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 			}
 		}
 	}
+}
+
+func aiConversationMessage(nick string, ev bot.Event) (string, bool) {
+	text := strings.TrimSpace(ev.Text)
+	if text == "" || strings.HasPrefix(text, "!") { return "", false }
+	if ev.Target == nick { return text, true }
+	if strings.HasPrefix(ev.Target, "#") {
+		lower := strings.ToLower(text)
+		n := strings.ToLower(strings.TrimSpace(nick))
+		for _, sep := range []string{":", ",", " "} {
+			prefix := n + sep
+			if strings.HasPrefix(lower, prefix) {
+				message := strings.TrimSpace(text[len(prefix):])
+				return message, message != ""
+			}
+		}
+	}
+	return "", false
 }
 
 func aiConversationKey(ev bot.Event) string {

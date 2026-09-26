@@ -320,13 +320,16 @@ func TestAccountTagUserhostChangeClearsVerification(t *testing.T) {
 	}
 }
 
-
 func TestBuiltinCommandSurvivesReplace(t *testing.T) {
 	s := &captureSender{}
 	b := New(s)
 	called := 0
 	b.BuiltinCommand("builtin", func(Event) error { called++; return nil })
 	b.Replace(NewRegistry())
-	if err := b.Handle(irc.ParseMessage(":n!u@h PRIVMSG #c :!builtin")); err != nil { t.Fatal(err) }
-	if called != 1 { t.Fatalf("called=%d", called) }
+	if err := b.Handle(irc.ParseMessage(":n!u@h PRIVMSG #c :!builtin")); err != nil {
+		t.Fatal(err)
+	}
+	if called != 1 {
+		t.Fatalf("called=%d", called)
+	}
 }

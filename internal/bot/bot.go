@@ -37,15 +37,15 @@ type Registry struct {
 }
 
 type Bot struct {
-	sender      Sender
-	mu          sync.RWMutex
-	handlers    map[string][]Handler
-	commands    map[string]Handler
+	sender          Sender
+	mu              sync.RWMutex
+	handlers        map[string][]Handler
+	commands        map[string]Handler
 	builtinHandlers map[string][]Handler
 	builtinCommands map[string]Handler
-	prefix      string
-	accounts    map[string]accountIdentity
-	caseMapping string
+	prefix          string
+	accounts        map[string]accountIdentity
+	caseMapping     string
 }
 
 func New(sender Sender) *Bot {
@@ -76,14 +76,18 @@ func (b *Bot) BuiltinOn(name string, handler Handler) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	name = strings.ToLower(strings.TrimSpace(name))
-	if name != "" && handler != nil { b.builtinHandlers[name] = append(b.builtinHandlers[name], handler) }
+	if name != "" && handler != nil {
+		b.builtinHandlers[name] = append(b.builtinHandlers[name], handler)
+	}
 }
 
 func (b *Bot) BuiltinCommand(name string, handler Handler) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	name = strings.ToLower(strings.TrimSpace(name))
-	if name != "" && handler != nil { b.builtinCommands[name] = handler }
+	if name != "" && handler != nil {
+		b.builtinCommands[name] = handler
+	}
 }
 
 func (b *Bot) Command(name string, handler Handler) {
@@ -191,7 +195,9 @@ func (b *Bot) Handle(m irc.Message) error {
 			commandName = strings.ToLower(fields[0])
 			commandArgs = append([]string(nil), fields[1:]...)
 			command = b.builtinCommands[commandName]
-			if command == nil { command = b.commands[commandName] }
+			if command == nil {
+				command = b.commands[commandName]
+			}
 		}
 	}
 	b.mu.RUnlock()

@@ -122,9 +122,13 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 				if cfg.BotAIConversation {
 					b.BuiltinOn("message", func(ev bot.Event) error {
 						message, ok := aiConversationMessage(cfg.Nick, ev)
-						if !ok { return nil }
+						if !ok {
+							return nil
+						}
 						replyTarget := ev.Target
-						if replyTarget == "" || !strings.HasPrefix(replyTarget, "#") { replyTarget = ev.Nick }
+						if replyTarget == "" || !strings.HasPrefix(replyTarget, "#") {
+							replyTarget = ev.Nick
+						}
 						aiCtx, cancel := context.WithTimeout(ctx, cfg.BotAITimeout)
 						defer cancel()
 						key := aiConversationKey(ev)
@@ -242,8 +246,12 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 
 func aiConversationMessage(nick string, ev bot.Event) (string, bool) {
 	text := strings.TrimSpace(ev.Text)
-	if text == "" || strings.HasPrefix(text, "!") { return "", false }
-	if ev.Target == nick { return text, true }
+	if text == "" || strings.HasPrefix(text, "!") {
+		return "", false
+	}
+	if ev.Target == nick {
+		return text, true
+	}
 	if strings.HasPrefix(ev.Target, "#") {
 		lower := strings.ToLower(text)
 		n := strings.ToLower(strings.TrimSpace(nick))

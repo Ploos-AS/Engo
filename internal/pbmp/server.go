@@ -141,9 +141,12 @@ type response struct {
 	Error  any    `json:"error,omitempty"`
 }
 
-const maxRequestBytes=4096
+const maxRequestBytes = 4096
+
 func Handle(in []byte, s *State) ([]byte, error) {
-	if len(in)>maxRequestBytes{return nil,errors.New("PBMP request too large")}
+	if len(in) > maxRequestBytes {
+		return nil, errors.New("PBMP request too large")
+	}
 	var q request
 	if err := json.Unmarshal(in, &q); err != nil {
 		return nil, err
@@ -306,9 +309,11 @@ func Serve(path string, s *State) error {
 }
 func serveConn(c net.Conn, s *State) {
 	defer c.Close()
-	r:=bufio.NewReaderSize(c,maxRequestBytes+1)
-	line,e:=r.ReadBytes('\n')
-	if len(line)>maxRequestBytes{return}
+	r := bufio.NewReaderSize(c, maxRequestBytes+1)
+	line, e := r.ReadBytes('\n')
+	if len(line) > maxRequestBytes {
+		return
+	}
 	if e != nil {
 		return
 	}

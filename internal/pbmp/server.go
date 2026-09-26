@@ -300,10 +300,18 @@ func Handle(in []byte, s *State) ([]byte, error) {
 			state = "parting"
 			if err == nil {
 				s.mu.Lock()
-				s.dynamic[irc.Casefold(name)] = name
-				s.wanted[irc.Casefold(name)] = false
-				delete(s.joined, irc.Casefold(name))
-				s.parting[irc.Casefold(name)] = true
+				key := irc.Casefold(name)
+				_, dynamic := s.dynamic[key]
+				if !dynamic {
+					for _, configured := range s.Channels {
+						if irc.Casefold(configured) == key {
+							s.wanted[key] = false
+							break
+						}
+					}
+				}
+				delete(s.joined, key)
+				s.parting[key] = true
 				s.mu.Unlock()
 			}
 		}

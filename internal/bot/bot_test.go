@@ -321,7 +321,7 @@ func TestAccountTagUserhostChangeClearsVerification(t *testing.T) {
 }
 
 func TestBuiltinCommandSurvivesReplace(t *testing.T) {
-	s := &captureSender{}
+	s := &testSender{}
 	b := New(s)
 	called := 0
 	b.BuiltinCommand("builtin", func(Event) error { called++; return nil })

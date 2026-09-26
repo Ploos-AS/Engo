@@ -19,6 +19,8 @@ type State struct {
 	connected     atomic.Bool
 	mu            sync.RWMutex
 	joined        map[string]bool
+	dynamic       map[string]string
+	parting       map[string]bool
 	join          func(string) error
 	part          func(string, string) error
 	modules       func() []map[string]any
@@ -31,7 +33,7 @@ type State struct {
 }
 
 func NewState(nick, network string, channels ...string) *State {
-	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool)}
+	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool), dynamic: make(map[string]string), parting: make(map[string]bool)}
 }
 func (s *State) SetConfig(v map[string]any) { s.mu.Lock(); s.config = v; s.mu.Unlock() }
 func (s *State) SetModuleAction(fn func(string, string) error) {
@@ -75,6 +77,7 @@ func (s *State) SetConnected(v bool) {
 	if !v {
 		s.mu.Lock()
 		clear(s.joined)
+		clear(s.parting)
 		s.mu.Unlock()
 	}
 }
@@ -93,6 +96,7 @@ func (s *State) Observe(command, nick string, params []string, trailing string) 
 		if irc.EqualRFC1459(nick, s.Nick) && ch != "" {
 			s.mu.Lock()
 			s.joined[irc.Casefold(ch)] = true
+			delete(s.parting, irc.Casefold(ch))
 			s.mu.Unlock()
 		}
 	case "PART":
@@ -102,12 +106,14 @@ func (s *State) Observe(command, nick string, params []string, trailing string) 
 		if irc.EqualRFC1459(nick, s.Nick) && ch != "" {
 			s.mu.Lock()
 			delete(s.joined, irc.Casefold(ch))
+			delete(s.parting, irc.Casefold(ch))
 			s.mu.Unlock()
 		}
 	case "KICK":
 		if len(params) >= 2 && irc.EqualRFC1459(params[1], s.Nick) {
 			s.mu.Lock()
 			delete(s.joined, irc.Casefold(params[0]))
+			delete(s.parting, irc.Casefold(params[0]))
 			s.mu.Unlock()
 		}
 	}
@@ -117,11 +123,12 @@ func (s *State) ChannelState(name string) string {
 		return "disconnected"
 	}
 	s.mu.RLock()
-	joined := s.joined[irc.Casefold(name)]
+	key:=irc.Casefold(name)
+	joined := s.joined[key]
+	parting:=s.parting[key]
 	s.mu.RUnlock()
-	if joined {
-		return "joined"
-	}
+	if joined { return "joined" }
+	if parting { return "parting" }
 	return "joining"
 }
 func (s *State) Connected() bool { return s.connected.Load() }
@@ -239,9 +246,11 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		state := "joining"
 		if q.Method == "channels.join" {
 			err = join(name)
+			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;delete(s.parting,irc.Casefold(name));s.mu.Unlock()}
 		} else {
 			err = part(name, param(q.Params, "reason"))
 			state = "parting"
+			if err==nil{s.mu.Lock();s.dynamic[irc.Casefold(name)]=name;s.parting[irc.Casefold(name)]=true;s.mu.Unlock()}
 		}
 		if err != nil {
 			r.OK = false
@@ -250,10 +259,7 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		}
 		r.Result = map[string]any{"network": network, "name": name, "state": state}
 	case "channels.list":
-		channels := make([]any, 0, len(s.Channels))
-		for _, name := range s.Channels {
-			channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": s.ChannelState(name)})
-		}
+		s.mu.RLock(); names:=append([]string(nil),s.Channels...);seen:=map[string]bool{};for _,n:=range names{seen[irc.Casefold(n)]=true};for k,n:=range s.dynamic{if !seen[k]{names=append(names,n)}};s.mu.RUnlock();channels := make([]any, 0, len(names));for _, name := range names { channels = append(channels, map[string]any{"network": s.Network, "name": name, "state": s.ChannelState(name)}) }
 		r.Result = map[string]any{"channels": channels}
 	case "networks.list":
 		state := "disconnected"

@@ -41,6 +41,7 @@ func main() {
 		started := time.Now()
 		err := runIRC(ctx, cfg, pbstate)
 		pbstate.SetConnected(false)
+		pbstate.CountReconnect()
 		if ctx.Err() != nil {
 			return
 		}
@@ -137,6 +138,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State) error {
 	pbstate.SetModules(moduleList)
 	pbstate.SetModuleAction(moduleAction)
 	client.OnMessage(func(m irc.Message) error {
+		pbstate.CountRX()
 		pbstate.Observe(m.Command, m.Nick, m.Params, m.Trailing)
 		return b.Handle(m)
 	})

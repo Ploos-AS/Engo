@@ -20,11 +20,13 @@ type State struct {
 	join          func(string) error
 	part          func(string, string) error
 	modules       func() []map[string]any
+	moduleAction  func(string,string) error
 }
 
 func NewState(nick, network string, channels ...string) *State {
 	return &State{Nick: nick, Network: network, Channels: append([]string(nil), channels...), joined: make(map[string]bool)}
 }
+func (s *State) SetModuleAction(fn func(string,string) error){s.mu.Lock();s.moduleAction=fn;s.mu.Unlock()}
 func (s *State) SetModules(fn func() []map[string]any) { s.mu.Lock(); s.modules = fn; s.mu.Unlock() }
 func (s *State) SetActions(join func(string) error, part func(string, string) error) {
 	s.mu.Lock()
@@ -117,13 +119,15 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	case "pbmp.info":
 		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
 	case "capabilities.list":
-		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list"}}
+		r.Result = map[string]any{"capabilities": []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "modules.reload", "modules.enable", "modules.disable"}}
 	case "bot.info":
 		state := "offline"
 		if s.Connected() {
 			state = "online"
 		}
 		r.Result = map[string]any{"implementation": "engo", "version": "0.1.0", "nick": s.Nick, "state": state}
+	case "modules.reload", "modules.enable", "modules.disable":
+		id:=param(q.Params,"id"); if id=="" { r.OK=false; r.Error=map[string]any{"code":"invalid_params","message":"module id required"}; break }; s.mu.RLock(); action:=s.moduleAction; s.mu.RUnlock(); if action==nil { r.OK=false;r.Error=map[string]any{"code":"not_supported","message":"module lifecycle unavailable"};break }; op:=strings.TrimPrefix(q.Method,"modules."); if err:=action(op,id);err!=nil{r.OK=false;r.Error=map[string]any{"code":"operation_failed","message":err.Error()};break}; state:="active";if op=="disable"{state="disabled"};r.Result=map[string]any{"id":id,"state":state}
 	case "modules.list":
 		s.mu.RLock()
 		fn := s.modules

@@ -38,6 +38,7 @@ type Config struct {
 	BotAIExpert           string
 	BotAITimeout          time.Duration
 	BotAIHistoryMessages  int64
+	BotAIConversation     bool
 	Channels              []string
 }
 
@@ -72,6 +73,7 @@ func FromEnv() Config {
 		BotAIExpert:           getenv("ENGO_BOTAI_EXPERT", "auto"),
 		BotAITimeout:          durationEnv("ENGO_BOTAI_TIMEOUT", 30*time.Second),
 		BotAIHistoryMessages:  int64Env("ENGO_BOTAI_HISTORY_MESSAGES", 10),
+		BotAIConversation:     getenv("ENGO_BOTAI_CONVERSATION", "0") == "1",
 		Channels:              csvEnv("ENGO_CHANNELS"),
 	}
 }

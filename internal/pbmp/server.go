@@ -189,7 +189,7 @@ func Handle(in []byte, s *State) ([]byte, error) {
 	r := response{PBMP: 1, Type: "response", ID: q.ID, OK: true}
 	switch q.Method {
 	case "pbmp.info":
-		r.Result = map[string]any{"protocol": "PBMP/1", "implementation": "engo", "version": "0.1.0"}
+		r.Result = map[string]any{"version": 1, "implementation": map[string]any{"name": "engo", "version": "0.1.0"}}
 	case "capabilities.list":
 		caps := []string{"pbmp.info", "capabilities.list", "bot.info", "networks.list", "channels.list", "channels.join", "channels.part", "modules.list", "metrics.read", "botai.status", "logs.read", "config.schema", "config.read"}
 		s.mu.RLock()
@@ -228,11 +228,11 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		}
 		r.Result = map[string]any{"botai": status}
 	case "bot.info":
-		state := "offline"
+		state := "stopped"
 		if s.Connected() {
-			state = "online"
+			state = "running"
 		}
-		r.Result = map[string]any{"implementation": "engo", "version": "0.1.0", "nick": s.Nick, "state": state}
+		r.Result = map[string]any{"bot": map[string]any{"id": s.Nick, "implementation": map[string]any{"name": "engo", "version": "0.1.0"}, "state": state}}
 	case "modules.reload", "modules.enable", "modules.disable":
 		id := param(q.Params, "id")
 		if id == "" {
@@ -344,7 +344,7 @@ func Handle(in []byte, s *State) ([]byte, error) {
 		if s.Connected() {
 			state = "connected"
 		}
-		r.Result = map[string]any{"networks": []any{map[string]any{"name": s.Network, "state": state}}}
+		r.Result = map[string]any{"networks": []any{map[string]any{"id": s.Network, "name": s.Network, "state": state}}}
 	default:
 		r.OK = false
 		r.Error = map[string]any{"code": "not_supported", "message": "method not supported"}

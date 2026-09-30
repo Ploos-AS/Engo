@@ -143,7 +143,6 @@ func TestBotAIStatusIsPrivacySafe(t *testing.T) {
 	}
 }
 
-
 func TestPBMP1RequiredMethodShapes(t *testing.T) {
 	s := NewState("engo", "irc.example", "#engo")
 
@@ -151,28 +150,46 @@ func TestPBMP1RequiredMethodShapes(t *testing.T) {
 		t.Helper()
 		in := []byte("{\"pbmp\":1,\"type\":\"request\",\"id\":\"q\",\"method\":\"" + method + "\",\"params\":{}}")
 		out, err := Handle(in, s)
-		if err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
 		var envelope map[string]any
-		if err := json.Unmarshal(out, &envelope); err != nil { t.Fatal(err) }
-		if envelope["ok"] != true { t.Fatalf("%s: %s", method, out) }
+		if err := json.Unmarshal(out, &envelope); err != nil {
+			t.Fatal(err)
+		}
+		if envelope["ok"] != true {
+			t.Fatalf("%s: %s", method, out)
+		}
 		verify(envelope["result"].(map[string]any))
 	}
 
 	check("pbmp.info", func(result map[string]any) {
-		if result["version"] != float64(1) { t.Fatalf("version=%v", result["version"]) }
+		if result["version"] != float64(1) {
+			t.Fatalf("version=%v", result["version"])
+		}
 		impl, ok := result["implementation"].(map[string]any)
-		if !ok || impl["name"] != "engo" || impl["version"] == "" { t.Fatalf("implementation=%v", result["implementation"]) }
+		if !ok || impl["name"] != "engo" || impl["version"] == "" {
+			t.Fatalf("implementation=%v", result["implementation"])
+		}
 	})
 	check("bot.info", func(result map[string]any) {
 		bot, ok := result["bot"].(map[string]any)
-		if !ok || bot["id"] != "engo" || bot["state"] != "stopped" { t.Fatalf("bot=%v", result["bot"]) }
+		if !ok || bot["id"] != "engo" || bot["state"] != "stopped" {
+			t.Fatalf("bot=%v", result["bot"])
+		}
 		impl, ok := bot["implementation"].(map[string]any)
-		if !ok || impl["name"] != "engo" || impl["version"] == "" { t.Fatalf("implementation=%v", bot["implementation"]) }
+		if !ok || impl["name"] != "engo" || impl["version"] == "" {
+			t.Fatalf("implementation=%v", bot["implementation"])
+		}
 	})
 	check("networks.list", func(result map[string]any) {
 		networks, ok := result["networks"].([]any)
-		if !ok || len(networks) != 1 { t.Fatalf("networks=%v", result["networks"]) }
+		if !ok || len(networks) != 1 {
+			t.Fatalf("networks=%v", result["networks"])
+		}
 		network := networks[0].(map[string]any)
-		if network["id"] != "irc.example" || network["state"] != "disconnected" { t.Fatalf("network=%v", network) }
+		if network["id"] != "irc.example" || network["state"] != "disconnected" {
+			t.Fatalf("network=%v", network)
+		}
 	})
 }

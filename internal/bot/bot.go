@@ -28,6 +28,7 @@ type Event struct {
 }
 
 type Handler func(Event) error
+type CommandPolicy func(Event) (bool,error)
 
 type accountIdentity struct{ account, userhost string }
 
@@ -46,6 +47,7 @@ type Bot struct {
 	prefix          string
 	accounts        map[string]accountIdentity
 	caseMapping     string
+	commandPolicy   CommandPolicy
 }
 
 func New(sender Sender) *Bot {
@@ -89,6 +91,8 @@ func (b *Bot) BuiltinCommand(name string, handler Handler) {
 		b.builtinCommands[name] = handler
 	}
 }
+
+func (b *Bot) SetCommandPolicy(policy CommandPolicy) { b.mu.Lock(); defer b.mu.Unlock(); b.commandPolicy=policy }
 
 func (b *Bot) Command(name string, handler Handler) {
 	b.mu.Lock()
@@ -189,6 +193,7 @@ func (b *Bot) Handle(m irc.Message) error {
 	var command Handler
 	var commandName string
 	var commandArgs []string
+	var commandPolicy CommandPolicy
 	if ev.Name == "message" && strings.HasPrefix(ev.Text, b.prefix) {
 		fields := strings.Fields(strings.TrimPrefix(ev.Text, b.prefix))
 		if len(fields) > 0 {
@@ -198,6 +203,7 @@ func (b *Bot) Handle(m irc.Message) error {
 			if command == nil {
 				command = b.commands[commandName]
 			}
+			commandPolicy = b.commandPolicy
 		}
 	}
 	b.mu.RUnlock()
@@ -210,6 +216,7 @@ func (b *Bot) Handle(m irc.Message) error {
 	}
 	if command != nil {
 		ev.Command, ev.Args = commandName, commandArgs
+		if commandPolicy != nil { allowed,err:=commandPolicy(ev); if err!=nil { fmt.Printf("engo: command policy %s failed open: %v\n",commandName,err) } else if !allowed { return nil } }
 		if err := command(ev); err != nil {
 			fmt.Printf("engo: command %s failed: %v\n", commandName, err)
 		}

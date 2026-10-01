@@ -119,12 +119,21 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 				})
 				b.SetCommandPolicy(func(ev bot.Event) (bool, error) {
 					required := cfg.CommandPermissions[ev.Command]
-					if required == "" { return true, nil }
-					if !ev.AccountVerified || !hasPermission(cfg.AccountPermissions[strings.ToLower(ev.Account)], required) { return true, nil }
-					pctx, cancel := context.WithTimeout(ctx, cfg.BotLogicTimeout); defer cancel()
+					if required == "" {
+						return true, nil
+					}
+					if !ev.AccountVerified || !hasPermission(cfg.AccountPermissions[strings.ToLower(ev.Account)], required) {
+						return true, nil
+					}
+					pctx, cancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
+					defer cancel()
 					allowed, _, err := logicClient.MayExecute(pctx, cfg.BotLogicRuleset, ev.Account, ev.Command)
-					if err != nil { return true, err }
-					if !allowed { _ = b.Notice(ev.Nick, "command denied by BotLogic policy") }
+					if err != nil {
+						return true, err
+					}
+					if !allowed {
+						_ = b.Notice(ev.Nick, "command denied by BotLogic policy")
+					}
 					return allowed, nil
 				})
 				pbstate.Log("info", "BotLogic integration enabled")
@@ -376,4 +385,12 @@ func filepathBase(path string) string {
 	}
 	return base
 }
-func hasPermission(permissions []string,required string) bool { required=strings.ToLower(strings.TrimSpace(required));for _,p:=range permissions{if strings.ToLower(strings.TrimSpace(p))==required{return true}};return false }
+func hasPermission(permissions []string, required string) bool {
+	required = strings.ToLower(strings.TrimSpace(required))
+	for _, p := range permissions {
+		if strings.ToLower(strings.TrimSpace(p)) == required {
+			return true
+		}
+	}
+	return false
+}

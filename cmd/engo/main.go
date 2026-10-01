@@ -106,6 +106,15 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 				fmt.Fprintf(os.Stderr, "engo: BotLogic unavailable/incompatible; continuing without symbolic reasoning: %v\n", compatErr)
 				pbstate.Log("warn", "BotLogic unavailable or incompatible; IRC operation continues")
 			} else {
+				if cfg.BotLogicDeployPolicy {
+					source, readErr := os.ReadFile(cfg.BotLogicPolicyFile)
+					if readErr != nil { return fmt.Errorf("read BotLogic policy: %w", readErr) }
+					deployCtx, deployCancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
+					deployErr := logicClient.Consult(deployCtx, cfg.BotLogicRuleset, string(source))
+					deployCancel()
+					if deployErr != nil { return fmt.Errorf("deploy BotLogic policy: %w", deployErr) }
+					pbstate.Log("info", "BotLogic policy deployed")
+				}
 				b.BuiltinCommand("logic", func(ev bot.Event) error {
 					if len(ev.Args) == 0 {
 						return b.Notice(ev.Nick, "usage: !logic <query>")

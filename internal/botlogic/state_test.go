@@ -95,20 +95,37 @@ func TestStateKickRemovesRoles(t *testing.T) {
 	}
 }
 
-func TestNamesBootstrapMembershipAndRoles(t *testing.T){
-	s:=NewIRCState();if ops:=s.Observe("353","server","","",false,[]string{"engo","=","#x"},"@Alice +Bob Carol");len(ops)!=0{t.Fatalf("353 mutated before 366: %+v",ops)}
-	ops:=s.Observe("366","server","","",false,[]string{"engo","#x"},"End")
-	if !hasOp(ops,"assert","channel_member","#x","alice")||!hasOp(ops,"assert","channel_member","#x","bob")||!hasOp(ops,"assert","channel_member","#x","carol"){t.Fatalf("membership ops=%+v",ops)}
-	if !hasOp(ops,"assert","channel_operator","#x","alice")||!hasOp(ops,"assert","voiced","#x","bob"){t.Fatalf("role ops=%+v",ops)}
+func TestNamesBootstrapMembershipAndRoles(t *testing.T) {
+	s := NewIRCState()
+	if ops := s.Observe("353", "server", "", "", false, []string{"engo", "=", "#x"}, "@Alice +Bob Carol"); len(ops) != 0 {
+		t.Fatalf("353 mutated before 366: %+v", ops)
+	}
+	ops := s.Observe("366", "server", "", "", false, []string{"engo", "#x"}, "End")
+	if !hasOp(ops, "assert", "channel_member", "#x", "alice") || !hasOp(ops, "assert", "channel_member", "#x", "bob") || !hasOp(ops, "assert", "channel_member", "#x", "carol") {
+		t.Fatalf("membership ops=%+v", ops)
+	}
+	if !hasOp(ops, "assert", "channel_operator", "#x", "alice") || !hasOp(ops, "assert", "voiced", "#x", "bob") {
+		t.Fatalf("role ops=%+v", ops)
+	}
 }
-func TestNamesBootstrapReconcilesStaleState(t *testing.T){
-	s:=NewIRCState();s.Observe("JOIN","Old","#x","",false,nil,"");s.Observe("MODE","Op","#x","",false,[]string{"#x","+o","Old"},"")
-	s.Observe("353","server","","",false,[]string{"engo","=","#x"},"New")
-	ops:=s.Observe("366","server","","",false,[]string{"engo","#x"},"End")
-	if !hasOp(ops,"retract","channel_member","#x","old")||!hasOp(ops,"retract","channel_operator","#x","old")||!hasOp(ops,"assert","channel_member","#x","new"){t.Fatalf("ops=%+v",ops)}
+func TestNamesBootstrapReconcilesStaleState(t *testing.T) {
+	s := NewIRCState()
+	s.Observe("JOIN", "Old", "#x", "", false, nil, "")
+	s.Observe("MODE", "Op", "#x", "", false, []string{"#x", "+o", "Old"}, "")
+	s.Observe("353", "server", "", "", false, []string{"engo", "=", "#x"}, "New")
+	ops := s.Observe("366", "server", "", "", false, []string{"engo", "#x"}, "End")
+	if !hasOp(ops, "retract", "channel_member", "#x", "old") || !hasOp(ops, "retract", "channel_operator", "#x", "old") || !hasOp(ops, "assert", "channel_member", "#x", "new") {
+		t.Fatalf("ops=%+v", ops)
+	}
 }
-func TestNamesAccumulatesMultiple353Lines(t *testing.T){
-	s:=NewIRCState();s.Observe("353","server","","",false,[]string{"engo","=","#x"},"Alice Bob");s.Observe("353","server","","",false,[]string{"engo","=","#x"},"Carol")
-	ops:=s.Observe("366","server","","",false,[]string{"engo","#x"},"End")
-	for _,n:=range []string{"alice","bob","carol"}{if !hasOp(ops,"assert","channel_member","#x",n){t.Fatalf("missing %s in %+v",n,ops)}}
+func TestNamesAccumulatesMultiple353Lines(t *testing.T) {
+	s := NewIRCState()
+	s.Observe("353", "server", "", "", false, []string{"engo", "=", "#x"}, "Alice Bob")
+	s.Observe("353", "server", "", "", false, []string{"engo", "=", "#x"}, "Carol")
+	ops := s.Observe("366", "server", "", "", false, []string{"engo", "#x"}, "End")
+	for _, n := range []string{"alice", "bob", "carol"} {
+		if !hasOp(ops, "assert", "channel_member", "#x", n) {
+			t.Fatalf("missing %s in %+v", n, ops)
+		}
+	}
 }

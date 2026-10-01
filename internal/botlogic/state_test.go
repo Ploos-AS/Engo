@@ -167,14 +167,39 @@ func TestWHOXDoesNotAuthenticateZeroAccount(t *testing.T) {
 	}
 }
 
-func TestResetRetractsOwnedStateAndAllowsFreshBootstrap(t *testing.T){
-	s:=NewIRCState();s.Observe("JOIN","Old","#x","oldacct",true,nil,"");s.Observe("MODE","Op","#x","",false,[]string{"#x","+ov","Old","Old"},"")
-	ops:=s.Reset()
-	for _,want:=range []struct{p string;a []string}{{"channel_member",[]string{"#x","old"}},{"channel_operator",[]string{"#x","old"}},{"voiced",[]string{"#x","old"}},{"authenticated",[]string{"old","oldacct"}},{"online",[]string{"old"}}}{if !hasOp(ops,"retract",want.p,want.a...){t.Fatalf("missing reset %s in %+v",want.p,ops)}}
-	s.Observe("353","server","","",false,[]string{"engo","=","#x"},"@New");fresh:=s.Observe("366","server","","",false,[]string{"engo","#x"},"End")
-	if !hasOp(fresh,"assert","channel_member","#x","new")||!hasOp(fresh,"assert","channel_operator","#x","new"){t.Fatalf("fresh=%+v",fresh)}
-	for _,op:=range fresh{for _,arg:=range op.Fact.Args{if arg=="old"{t.Fatalf("stale state survived reset: %+v",fresh)}}}
+func TestResetRetractsOwnedStateAndAllowsFreshBootstrap(t *testing.T) {
+	s := NewIRCState()
+	s.Observe("JOIN", "Old", "#x", "oldacct", true, nil, "")
+	s.Observe("MODE", "Op", "#x", "", false, []string{"#x", "+ov", "Old", "Old"}, "")
+	ops := s.Reset()
+	for _, want := range []struct {
+		p string
+		a []string
+	}{{"channel_member", []string{"#x", "old"}}, {"channel_operator", []string{"#x", "old"}}, {"voiced", []string{"#x", "old"}}, {"authenticated", []string{"old", "oldacct"}}, {"online", []string{"old"}}} {
+		if !hasOp(ops, "retract", want.p, want.a...) {
+			t.Fatalf("missing reset %s in %+v", want.p, ops)
+		}
+	}
+	s.Observe("353", "server", "", "", false, []string{"engo", "=", "#x"}, "@New")
+	fresh := s.Observe("366", "server", "", "", false, []string{"engo", "#x"}, "End")
+	if !hasOp(fresh, "assert", "channel_member", "#x", "new") || !hasOp(fresh, "assert", "channel_operator", "#x", "new") {
+		t.Fatalf("fresh=%+v", fresh)
+	}
+	for _, op := range fresh {
+		for _, arg := range op.Fact.Args {
+			if arg == "old" {
+				t.Fatalf("stale state survived reset: %+v", fresh)
+			}
+		}
+	}
 }
-func TestResetIsIdempotent(t *testing.T){
-	s:=NewIRCState();s.Observe("JOIN","Alice","#x","",false,nil,"");if len(s.Reset())==0{t.Fatal("first reset empty")};if ops:=s.Reset();len(ops)!=0{t.Fatalf("second reset=%+v",ops)}
+func TestResetIsIdempotent(t *testing.T) {
+	s := NewIRCState()
+	s.Observe("JOIN", "Alice", "#x", "", false, nil, "")
+	if len(s.Reset()) == 0 {
+		t.Fatal("first reset empty")
+	}
+	if ops := s.Reset(); len(ops) != 0 {
+		t.Fatalf("second reset=%+v", ops)
+	}
 }

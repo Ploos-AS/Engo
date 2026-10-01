@@ -97,15 +97,24 @@ jobs:
           repository: Ploos-AS/BotLogic
           ref: main
           path: .botlogic
+      - name: Build BotLogic
+        working-directory: .botlogic
+        run: go build -o /tmp/botlogic ./cmd/botlogic
       - name: Start BotLogic
         run: |
-          cd .botlogic
-          go build -o /tmp/botlogic ./cmd/botlogic\n          ls -l /tmp/botlogic
-          cd ..
-          mkdir -p /tmp/engo-botlogic-data\n          BOTLOGIC_LISTEN=127.0.0.1:18091 BOTLOGIC_DATA_DIR=/tmp/engo-botlogic-data /tmp/botlogic > /tmp/botlogic.log 2>&1 &
+          mkdir -p /tmp/engo-botlogic-data
+          BOTLOGIC_LISTEN=127.0.0.1:18091 BOTLOGIC_DATA_DIR=/tmp/engo-botlogic-data /tmp/botlogic > /tmp/botlogic.log 2>&1 &
           echo $! > /tmp/botlogic.pid
-          sleep 1\n          cat /tmp/botlogic.log || true\n          for i in {1..200}; do
-            curl -fsS http://127.0.0.1:18091/readyz >/dev/null && exit 0
+          sleep 1
+          cat /tmp/botlogic.log || true
+          for i in {1..200}; do
+            if curl -fsS http://127.0.0.1:18091/readyz >/dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat /tmp/botlogic.pid)" 2>/dev/null; then
+              cat /tmp/botlogic.log || true
+              exit 1
+            fi
             sleep 0.1
           done
           cat /tmp/botlogic.log || true

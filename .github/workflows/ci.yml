@@ -95,7 +95,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Ploos-AS/BotLogic
-          ref: main
+          ref: bbfd5d5dae96d793c7616d3646ecc93805910a2a
           path: .botlogic
       - name: Build BotLogic
         working-directory: .botlogic

@@ -82,3 +82,31 @@ jobs:
           name: engo-pbmp-v1.0.0-conformance
           path: engo-pbmp-conformance.json
           if-no-files-found: error
+
+  botlogic-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: true
+      - name: Check out BotLogic
+        uses: actions/checkout@v4
+        with:
+          repository: Ploos-AS/BotLogic
+          ref: main
+          path: .botlogic
+      - name: Start BotLogic
+        run: |
+          BOTLOGIC_LISTEN=127.0.0.1:18091 BOTLOGIC_DATA_DIR=/tmp/engo-botlogic-data go run ./.botlogic/cmd/botlogic &
+          echo $! > /tmp/botlogic.pid
+          for i in {1..100}; do
+            curl -fsS http://127.0.0.1:18091/readyz >/dev/null && exit 0
+            sleep 0.1
+          done
+          exit 1
+      - name: Run reference policy acceptance tests
+        env:
+          ENGO_TEST_BOTLOGIC_URL: http://127.0.0.1:18091
+        run: go test ./integration -run TestReferencePolicyAgainstBotLogic -v

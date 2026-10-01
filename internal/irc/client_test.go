@@ -1068,3 +1068,8 @@ func TestRFC1459Identity(t *testing.T) {
 		t.Fatal("prefix accepted partial nick")
 	}
 }
+
+func TestWhoUsesFixedWHOXContract(t *testing.T){
+	clientConn,serverConn:=net.Pipe();defer clientConn.Close();defer serverConn.Close();c:=&Client{conn:clientConn};done:=make(chan error,1);go func(){done<-c.Who("#engo")}()
+	line,err:=bufio.NewReader(serverConn).ReadString('\n');if err!=nil{t.Fatal(err)};if got:=strings.TrimSpace(line);got!="WHO #engo %tcna,152"{t.Fatalf("WHO=%q",got)};if err:=<-done;err!=nil{t.Fatal(err)}
+}

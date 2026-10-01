@@ -107,12 +107,12 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 				pbstate.Log("warn", "BotLogic unavailable or incompatible; IRC operation continues")
 			} else {
 				if cfg.BotLogicDeployPolicy {
-					source, readErr := os.ReadFile(cfg.BotLogicPolicyFile)
+					source, readErr := botlogicclient.LoadPolicyFile(cfg.BotLogicPolicyFile)
 					if readErr != nil {
-						return fmt.Errorf("read BotLogic policy: %w", readErr)
+						return fmt.Errorf("preflight BotLogic policy: %w", readErr)
 					}
 					deployCtx, deployCancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
-					deployErr := logicClient.Consult(deployCtx, cfg.BotLogicRuleset, string(source))
+					deployErr := logicClient.Consult(deployCtx, cfg.BotLogicRuleset, source)
 					deployCancel()
 					if deployErr != nil {
 						return fmt.Errorf("deploy BotLogic policy: %w", deployErr)

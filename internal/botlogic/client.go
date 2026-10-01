@@ -54,6 +54,14 @@ func (c *Client) Compatible(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) Consult(ctx context.Context, ruleset, source string) error {
+	if strings.TrimSpace(ruleset)=="" || strings.TrimSpace(source)=="" { return fmt.Errorf("ruleset and source are required") }
+	if len(source)>64<<10 { return fmt.Errorf("ruleset source exceeds BotLogic 64 KiB limit") }
+	in:=struct{Ruleset string `json:"ruleset"`;Source string `json:"source"`}{ruleset,source}
+	var out struct{OK bool `json:"ok"`}
+	return c.request(ctx,http.MethodPost,"/v1/consult",in,&out)
+}
+
 func (c *Client) Query(ctx context.Context, ruleset, query string) (QueryResult, error) {
 	if strings.TrimSpace(ruleset) == "" || strings.TrimSpace(query) == "" {
 		return QueryResult{}, fmt.Errorf("ruleset and query are required")

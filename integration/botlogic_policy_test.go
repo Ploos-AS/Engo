@@ -62,7 +62,11 @@ func TestReferencePolicyAgainstBotLogic(t *testing.T) {
 	for _, q := range []string{
 		"account_command('alice','reload').",
 		"authenticated('AliceNick','alice').",
+		"authenticated('OpNick','opacct').",
+		"authenticated('VoiceNick','voiceacct').",
 		"online('AliceNick').",
+		"online('OpNick').",
+		"online('VoiceNick').",
 		"channel_operator('#engo','OpNick').",
 		"operator_command('kick').",
 		"voiced('#engo','VoiceNick').",

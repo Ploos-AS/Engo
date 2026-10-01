@@ -54,7 +54,8 @@ jobs:
           cache: true
       - name: Start Engo PBMP qualification endpoint
         run: |
-          go run ./cmd/engo-pbmp-qualification &
+          go build -o /tmp/engo-pbmp-qualification ./cmd/engo-pbmp-qualification
+          /tmp/engo-pbmp-qualification &
           echo $! > /tmp/engo-pbmp.pid
           for i in {1..50}; do
             test -S "$ENGO_PBMP_SOCKET" && exit 0

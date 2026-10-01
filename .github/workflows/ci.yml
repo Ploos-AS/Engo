@@ -99,7 +99,7 @@ jobs:
           path: .botlogic
       - name: Start BotLogic
         run: |
-          BOTLOGIC_LISTEN=127.0.0.1:18091 BOTLOGIC_DATA_DIR=/tmp/engo-botlogic-data go run ./.botlogic/cmd/botlogic &
+          (cd .botlogic && BOTLOGIC_LISTEN=127.0.0.1:18091 BOTLOGIC_DATA_DIR=/tmp/engo-botlogic-data go run ./cmd/botlogic) &
           echo $! > /tmp/botlogic.pid
           for i in {1..100}; do
             curl -fsS http://127.0.0.1:18091/readyz >/dev/null && exit 0

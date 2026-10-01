@@ -131,7 +131,11 @@ func (c *Client) request(ctx context.Context, method, path string, in, out any) 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+		detail := strings.TrimSpace(string(b))
+		if detail != "" {
+			return fmt.Errorf("BotLogic HTTP %d: %s", resp.StatusCode, detail)
+		}
 		return fmt.Errorf("BotLogic HTTP %d", resp.StatusCode)
 	}
 	return json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(out)

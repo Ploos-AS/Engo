@@ -6,16 +6,19 @@ import (
 	"sync"
 )
 
+type nameRole struct{ op, voice bool }
+
 type IRCState struct {
 	mu        sync.Mutex
 	channels  map[string]map[string]bool
 	accounts  map[string]string
 	operators map[string]map[string]bool
 	voiced    map[string]map[string]bool
+	names map[string]map[string]nameRole
 }
 
 func NewIRCState() *IRCState {
-	return &IRCState{channels: map[string]map[string]bool{}, accounts: map[string]string{}, operators: map[string]map[string]bool{}, voiced: map[string]map[string]bool{}}
+	return &IRCState{channels: map[string]map[string]bool{}, accounts: map[string]string{}, operators: map[string]map[string]bool{}, voiced: map[string]map[string]bool{}, names: map[string]map[string]nameRole{}}
 }
 
 func (s *IRCState) Observe(command, nick, target, account string, verified bool, params []string, trailing string) []FactOperation {
@@ -110,6 +113,18 @@ func (s *IRCState) Observe(command, nick, target, account string, verified bool,
 		if a := s.accounts[nick]; a != "" {
 			delete(s.accounts, nick)
 			ops = append(ops, f("retract", "authenticated", nick, a))
+		}
+	case "353":
+		if len(params)<3{return nil};ch:=strings.ToLower(params[2]);if ch==""{return nil};if s.names[ch]==nil{s.names[ch]=map[string]nameRole{}}
+		for _,raw:=range strings.Fields(trailing){r:=nameRole{};name:=raw;for len(name)>0{if name[0]=='@'{r.op=true;name=name[1:];continue};if name[0]=='+'{r.voice=true;name=name[1:];continue};break};name=strings.ToLower(name);if name!=""{s.names[ch][name]=r}}
+	case "366":
+		if len(params)<2{return nil};ch:=strings.ToLower(params[1]);snap,ok:=s.names[ch];if !ok{return nil};delete(s.names,ch)
+		if s.channels[ch]==nil{s.channels[ch]=map[string]bool{}}
+		for old:=range s.channels[ch]{if _,present:=snap[old];!present{delete(s.channels[ch],old);ops=append(ops,f("retract","channel_member",ch,old));ops=append(ops,s.removeRoles(ch,old,f)...)}}
+		names:=make([]string,0,len(snap));for name:=range snap{names=append(names,name)};sort.Strings(names)
+		for _,name:=range names{r:=snap[name];if !s.channels[ch][name]{s.channels[ch][name]=true;ops=append(ops,f("assert","channel_member",ch,name),f("assert","online",name))}
+			if r.op {if s.operators[ch]==nil{s.operators[ch]=map[string]bool{}};if !s.operators[ch][name]{s.operators[ch][name]=true;ops=append(ops,f("assert","channel_operator",ch,name))}} else if s.operators[ch]!=nil&&s.operators[ch][name]{delete(s.operators[ch],name);ops=append(ops,f("retract","channel_operator",ch,name))}
+			if r.voice {if s.voiced[ch]==nil{s.voiced[ch]=map[string]bool{}};if !s.voiced[ch][name]{s.voiced[ch][name]=true;ops=append(ops,f("assert","voiced",ch,name))}} else if s.voiced[ch]!=nil&&s.voiced[ch][name]{delete(s.voiced[ch],name);ops=append(ops,f("retract","voiced",ch,name))}
 		}
 	case "MODE":
 		if target == "" || len(params) < 2 || !strings.HasPrefix(target, "#") {

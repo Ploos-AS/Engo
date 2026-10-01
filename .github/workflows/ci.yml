@@ -99,13 +99,18 @@ jobs:
           path: .botlogic
       - name: Start BotLogic
         run: |
-          cd .botlogic\n          go build -o /tmp/botlogic ./cmd/botlogic\n          cd ..\n          BOTLOGIC_LISTEN=127.0.0.1:18091 BOTLOGIC_DATA_DIR=/tmp/engo-botlogic-data /tmp/botlogic > /tmp/botlogic.log 2>&1 &
+          cd .botlogic
+          go build -o /tmp/botlogic ./cmd/botlogic
+          cd ..
+          BOTLOGIC_LISTEN=127.0.0.1:18091 BOTLOGIC_DATA_DIR=/tmp/engo-botlogic-data /tmp/botlogic > /tmp/botlogic.log 2>&1 &
           echo $! > /tmp/botlogic.pid
           for i in {1..100}; do
             curl -fsS http://127.0.0.1:18091/readyz >/dev/null && exit 0
             sleep 0.1
           done
-          cat /tmp/botlogic.log || true\n          exit 1\n      - name: Run reference policy acceptance tests
+          cat /tmp/botlogic.log || true
+          exit 1
+      - name: Run reference policy acceptance tests
         env:
           ENGO_TEST_BOTLOGIC_URL: http://127.0.0.1:18091
         run: go test ./integration -run TestReferencePolicyAgainstBotLogic -v

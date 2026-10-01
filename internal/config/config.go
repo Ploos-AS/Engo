@@ -133,8 +133,12 @@ func (c Config) Validate() error {
 		}
 		seenIRCCaps[name] = true
 	}
-	if c.BotLogicURL != "" && c.BotLogicTimeout <= 0 { return fmt.Errorf("ENGO_BOTLOGIC_TIMEOUT must be positive") }
-	if c.BotLogicURL != "" && strings.TrimSpace(c.BotLogicRuleset)=="" { return fmt.Errorf("ENGO_BOTLOGIC_RULESET must not be empty") }
+	if c.BotLogicURL != "" && c.BotLogicTimeout <= 0 {
+		return fmt.Errorf("ENGO_BOTLOGIC_TIMEOUT must be positive")
+	}
+	if c.BotLogicURL != "" && strings.TrimSpace(c.BotLogicRuleset) == "" {
+		return fmt.Errorf("ENGO_BOTLOGIC_RULESET must not be empty")
+	}
 	if c.BotAIURL != "" && c.BotAITimeout <= 0 {
 		return fmt.Errorf("ENGO_BOTAI_TIMEOUT must be positive")
 	}

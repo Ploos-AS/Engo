@@ -297,11 +297,20 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 	client.OnMessage(func(m irc.Message) error {
 		pbstate.CountRX()
 		pbstate.Observe(m.Command, m.Nick, m.Params, m.Trailing)
-		if err:=b.Handle(m);err!=nil{return err}
-		if logicStateClient!=nil {
-			ev:=botEventForLogicState(m)
-			ops:=botlogicclient.IRCStateOperations(m.Command,m.Nick,ev.Target,ev.Account,ev.AccountVerified)
-			if len(ops)>0 { sctx,cancel:=context.WithTimeout(ctx,cfg.BotLogicTimeout);_,err:=logicStateClient.ApplyFacts(sctx,cfg.BotLogicRuleset,ops);cancel();if err!=nil{fmt.Fprintf(os.Stderr,"engo: BotLogic state sync failed open: %v\n",err)} }
+		if err := b.Handle(m); err != nil {
+			return err
+		}
+		if logicStateClient != nil {
+			ev := botEventForLogicState(m)
+			ops := botlogicclient.IRCStateOperations(m.Command, m.Nick, ev.Target, ev.Account, ev.AccountVerified)
+			if len(ops) > 0 {
+				sctx, cancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
+				_, err := logicStateClient.ApplyFacts(sctx, cfg.BotLogicRuleset, ops)
+				cancel()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "engo: BotLogic state sync failed open: %v\n", err)
+				}
+			}
 		}
 		return nil
 	})
@@ -403,4 +412,20 @@ func hasPermission(permissions []string, required string) bool {
 	return false
 }
 
-func botEventForLogicState(m irc.Message) bot.Event { ev:=bot.Event{Nick:m.Nick,Target:m.Target()};if m.Command=="JOIN"{if ev.Target==""{ev.Target=m.Trailing};if len(m.Params)>=2&&m.Params[1]!="*"&&strings.Contains(m.Prefix,"!"){ev.Account=m.Params[1];ev.AccountVerified=true}};if m.Command=="ACCOUNT"&&len(m.Params)>0&&m.Params[0]!="*"&&strings.Contains(m.Prefix,"!"){ev.Account=m.Params[0];ev.AccountVerified=true};return ev }
+func botEventForLogicState(m irc.Message) bot.Event {
+	ev := bot.Event{Nick: m.Nick, Target: m.Target()}
+	if m.Command == "JOIN" {
+		if ev.Target == "" {
+			ev.Target = m.Trailing
+		}
+		if len(m.Params) >= 2 && m.Params[1] != "*" && strings.Contains(m.Prefix, "!") {
+			ev.Account = m.Params[1]
+			ev.AccountVerified = true
+		}
+	}
+	if m.Command == "ACCOUNT" && len(m.Params) > 0 && m.Params[0] != "*" && strings.Contains(m.Prefix, "!") {
+		ev.Account = m.Params[0]
+		ev.AccountVerified = true
+	}
+	return ev
+}

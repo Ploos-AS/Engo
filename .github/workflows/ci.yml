@@ -41,6 +41,31 @@ jobs:
         run: docker build -t engo:ci .
 
 
+  standalone-contract:
+    runs-on: ubuntu-latest
+    env:
+      ENGO_PBMP_SOCKET: ""
+      ENGO_BOTWEB_URL: ""
+      ENGO_BOTAI_URL: ""
+      ENGO_BOTLOGIC_URL: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: true
+      - name: Qualify standalone core with all integrations disabled
+        run: |
+          test -z "$ENGO_PBMP_SOCKET"
+          test -z "$ENGO_BOTWEB_URL"
+          test -z "$ENGO_BOTAI_URL"
+          test -z "$ENGO_BOTLOGIC_URL"
+          go test ./...
+          go build ./cmd/engo
+      - name: Verify no Ploos integration is a required Go module
+        run: |
+          ! go list -m all | grep -Ei 'Ploos-AS/(PBMP|BotWeb|BotAI|BotLogic)'
+
   pbmp-conformance:
     runs-on: ubuntu-latest
     env:

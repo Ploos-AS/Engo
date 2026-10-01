@@ -47,12 +47,32 @@ func TestIncompatibleAPIFailsClosedForIntegration(t *testing.T) {
 	}
 }
 
-func TestConsultUsesStableV1Endpoint(t *testing.T){
-	var gotPath string;var got map[string]string
-	s:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){gotPath=r.URL.Path;if err:=json.NewDecoder(r.Body).Decode(&got);err!=nil{t.Fatal(err)};w.Header().Set("Content-Type","application/json");io.WriteString(w,`{"ok":true}`)}));defer s.Close()
-	c,err:=New(s.URL,time.Second);if err!=nil{t.Fatal(err)};if err:=c.Consult(context.Background(),"irc-policy","may_execute(a,b).");err!=nil{t.Fatal(err)}
-	if gotPath!="/v1/consult"||got["ruleset"]!="irc-policy"||got["source"]!="may_execute(a,b)."{t.Fatalf("path=%q body=%v",gotPath,got)}
+func TestConsultUsesStableV1Endpoint(t *testing.T) {
+	var gotPath string
+	var got map[string]string
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"ok":true}`)
+	}))
+	defer s.Close()
+	c, err := New(s.URL, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Consult(context.Background(), "irc-policy", "may_execute(a,b)."); err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/v1/consult" || got["ruleset"] != "irc-policy" || got["source"] != "may_execute(a,b)." {
+		t.Fatalf("path=%q body=%v", gotPath, got)
+	}
 }
-func TestConsultRejectsOversizeSource(t *testing.T){
-	c,_:=New("http://127.0.0.1",time.Second);if err:=c.Consult(context.Background(),"x",strings.Repeat("x",(64<<10)+1));err==nil{t.Fatal("expected size error")}
+func TestConsultRejectsOversizeSource(t *testing.T) {
+	c, _ := New("http://127.0.0.1", time.Second)
+	if err := c.Consult(context.Background(), "x", strings.Repeat("x", (64<<10)+1)); err == nil {
+		t.Fatal("expected size error")
+	}
 }

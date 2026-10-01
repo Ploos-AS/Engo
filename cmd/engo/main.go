@@ -108,11 +108,15 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 			} else {
 				if cfg.BotLogicDeployPolicy {
 					source, readErr := os.ReadFile(cfg.BotLogicPolicyFile)
-					if readErr != nil { return fmt.Errorf("read BotLogic policy: %w", readErr) }
+					if readErr != nil {
+						return fmt.Errorf("read BotLogic policy: %w", readErr)
+					}
 					deployCtx, deployCancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
 					deployErr := logicClient.Consult(deployCtx, cfg.BotLogicRuleset, string(source))
 					deployCancel()
-					if deployErr != nil { return fmt.Errorf("deploy BotLogic policy: %w", deployErr) }
+					if deployErr != nil {
+						return fmt.Errorf("deploy BotLogic policy: %w", deployErr)
+					}
 					pbstate.Log("info", "BotLogic policy deployed")
 				}
 				b.BuiltinCommand("logic", func(ev bot.Event) error {

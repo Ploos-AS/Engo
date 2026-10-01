@@ -28,7 +28,7 @@ type Event struct {
 }
 
 type Handler func(Event) error
-type CommandPolicy func(Event) (bool,error)
+type CommandPolicy func(Event) (bool, error)
 
 type accountIdentity struct{ account, userhost string }
 
@@ -92,7 +92,11 @@ func (b *Bot) BuiltinCommand(name string, handler Handler) {
 	}
 }
 
-func (b *Bot) SetCommandPolicy(policy CommandPolicy) { b.mu.Lock(); defer b.mu.Unlock(); b.commandPolicy=policy }
+func (b *Bot) SetCommandPolicy(policy CommandPolicy) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.commandPolicy = policy
+}
 
 func (b *Bot) Command(name string, handler Handler) {
 	b.mu.Lock()
@@ -216,7 +220,14 @@ func (b *Bot) Handle(m irc.Message) error {
 	}
 	if command != nil {
 		ev.Command, ev.Args = commandName, commandArgs
-		if commandPolicy != nil { allowed,err:=commandPolicy(ev); if err!=nil { fmt.Printf("engo: command policy %s failed open: %v\n",commandName,err) } else if !allowed { return nil } }
+		if commandPolicy != nil {
+			allowed, err := commandPolicy(ev)
+			if err != nil {
+				fmt.Printf("engo: command policy %s failed open: %v\n", commandName, err)
+			} else if !allowed {
+				return nil
+			}
+		}
 		if err := command(ev); err != nil {
 			fmt.Printf("engo: command %s failed: %v\n", commandName, err)
 		}

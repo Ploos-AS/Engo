@@ -59,6 +59,19 @@ func TestReferencePolicyAgainstBotLogic(t *testing.T) {
 		{"voice cannot use operator command", "voiceacct", "kick", false},
 		{"unauthenticated operator nick grants nothing", "ghost", "kick", false},
 	}
+	for _, q := range []string{
+		"account_command('alice','reload').",
+		"authenticated('AliceNick','alice').",
+		"online('AliceNick').",
+		"channel_operator('#engo','OpNick').",
+		"operator_command('kick').",
+		"voiced('#engo','VoiceNick').",
+		"voiced_command('topic').",
+	} {
+		r, err := c.Query(ctx, "irc-policy", q)
+		t.Logf("M2.4 diagnostic query=%s solutions=%v err=%v", q, r.Solutions, err)
+	}
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			r, err := c.Query(ctx, "irc-policy", "may_execute("+quote(tc.account)+","+quote(tc.command)+").")

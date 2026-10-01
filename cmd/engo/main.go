@@ -92,6 +92,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 	pbstate.SetActions(client.Join, client.Part)
 	b := bot.New(client)
 	var logicStateClient *botlogicclient.Client
+	logicIRCState := botlogicclient.NewIRCState()
 	if cfg.BotLogicURL != "" {
 		logicClient, logicErr := botlogicclient.New(cfg.BotLogicURL, cfg.BotLogicTimeout)
 		if logicErr != nil {
@@ -302,7 +303,7 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 		}
 		if logicStateClient != nil {
 			ev := botEventForLogicState(m)
-			ops := botlogicclient.IRCStateOperations(m.Command, m.Nick, ev.Target, ev.Account, ev.AccountVerified)
+			ops := logicIRCState.Observe(m.Command, m.Nick, ev.Target, ev.Account, ev.AccountVerified, m.Params, m.Trailing)
 			if len(ops) > 0 {
 				sctx, cancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
 				_, err := logicStateClient.ApplyFacts(sctx, cfg.BotLogicRuleset, ops)

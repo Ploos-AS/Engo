@@ -38,7 +38,7 @@ type Config struct {
 	BotLogicRuleset       string
 	BotLogicTimeout       time.Duration
 	BotLogicPolicyFile    string
-	BotLogicDeployPolicy bool
+	BotLogicDeployPolicy  bool
 	BotAIURL              string
 	BotAIExpert           string
 	BotAITimeout          time.Duration
@@ -80,7 +80,7 @@ func FromEnv() Config {
 		BotLogicRuleset:       getenv("ENGO_BOTLOGIC_RULESET", "irc-policy"),
 		BotLogicTimeout:       durationEnv("ENGO_BOTLOGIC_TIMEOUT", 2*time.Second),
 		BotLogicPolicyFile:    strings.TrimSpace(os.Getenv("ENGO_BOTLOGIC_POLICY_FILE")),
-		BotLogicDeployPolicy: getenv("ENGO_BOTLOGIC_DEPLOY_POLICY", "0") == "1",
+		BotLogicDeployPolicy:  getenv("ENGO_BOTLOGIC_DEPLOY_POLICY", "0") == "1",
 		BotAIURL:              strings.TrimSpace(os.Getenv("ENGO_BOTAI_URL")),
 		BotAIExpert:           getenv("ENGO_BOTAI_EXPERT", "auto"),
 		BotAITimeout:          durationEnv("ENGO_BOTAI_TIMEOUT", 30*time.Second),
@@ -140,8 +140,12 @@ func (c Config) Validate() error {
 	if c.BotLogicURL != "" && c.BotLogicTimeout <= 0 {
 		return fmt.Errorf("ENGO_BOTLOGIC_TIMEOUT must be positive")
 	}
-	if c.BotLogicDeployPolicy && c.BotLogicURL == "" { return fmt.Errorf("ENGO_BOTLOGIC_DEPLOY_POLICY requires ENGO_BOTLOGIC_URL") }
-	if c.BotLogicDeployPolicy && c.BotLogicPolicyFile == "" { return fmt.Errorf("ENGO_BOTLOGIC_DEPLOY_POLICY requires ENGO_BOTLOGIC_POLICY_FILE") }
+	if c.BotLogicDeployPolicy && c.BotLogicURL == "" {
+		return fmt.Errorf("ENGO_BOTLOGIC_DEPLOY_POLICY requires ENGO_BOTLOGIC_URL")
+	}
+	if c.BotLogicDeployPolicy && c.BotLogicPolicyFile == "" {
+		return fmt.Errorf("ENGO_BOTLOGIC_DEPLOY_POLICY requires ENGO_BOTLOGIC_POLICY_FILE")
+	}
 	if c.BotLogicURL != "" && strings.TrimSpace(c.BotLogicRuleset) == "" {
 		return fmt.Errorf("ENGO_BOTLOGIC_RULESET must not be empty")
 	}

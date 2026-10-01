@@ -2,6 +2,7 @@ package bot
 
 import (
 	"testing"
+	"fmt"
 
 	"github.com/Ploos-AS/Engo/internal/irc"
 )
@@ -332,4 +333,20 @@ func TestBuiltinCommandSurvivesReplace(t *testing.T) {
 	if called != 1 {
 		t.Fatalf("called=%d", called)
 	}
+}
+
+func TestCommandPolicyCanDeny(t *testing.T) {
+	s:=&testSender{};b:=New(s);called:=false
+	b.Command("reload",func(Event) error{called=true;return nil})
+	b.SetCommandPolicy(func(ev Event)(bool,error){if ev.Command!="reload"{t.Fatalf("command=%q",ev.Command)};return false,nil})
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if called{t.Fatal("denied command executed")}
+}
+
+func TestCommandPolicyErrorFailsOpen(t *testing.T) {
+	s:=&testSender{};b:=New(s);called:=false
+	b.Command("reload",func(Event) error{called=true;return nil})
+	b.SetCommandPolicy(func(Event)(bool,error){return false,fmt.Errorf("unavailable")})
+	if err:=b.Handle(irc.ParseMessage(":alice!u@example PRIVMSG #engo :!reload"));err!=nil{t.Fatal(err)}
+	if !called{t.Fatal("policy error blocked standalone command")}
 }

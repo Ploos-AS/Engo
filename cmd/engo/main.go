@@ -318,6 +318,15 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 	reload := make(chan os.Signal, 1)
 	signal.Notify(reload, syscall.SIGHUP)
 	defer signal.Stop(reload)
+	if logicStateClient != nil {
+		// Clear facts owned by the previous in-memory IRC mirror before this
+		// connection starts producing a fresh NAMES/WHO/WHOX bootstrap.
+		if ops:=logicIRCState.Reset();len(ops)>0 {
+			sctx,cancel:=context.WithTimeout(ctx,cfg.BotLogicTimeout)
+			_,err:=logicStateClient.ApplyFacts(sctx,cfg.BotLogicRuleset,ops);cancel()
+			if err!=nil{fmt.Fprintf(os.Stderr,"engo: BotLogic reconnect reset failed open: %v\n",err)}
+		}
+	}
 	done := make(chan error, 1)
 	go func() { done <- client.Run() }()
 	for {

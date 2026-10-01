@@ -54,6 +54,16 @@ func (c *Client) Compatible(ctx context.Context) error {
 	return nil
 }
 
+func (c *Client) Validate(ctx context.Context, source string) error {
+	if strings.TrimSpace(source)=="" { return fmt.Errorf("source is required") }
+	if len(source)>64<<10 { return fmt.Errorf("ruleset source exceeds BotLogic 64 KiB limit") }
+	in:=struct{Source string `json:"source"`}{source}
+	var out struct{OK bool `json:"ok"`;Valid bool `json:"valid"`}
+	if err:=c.request(ctx,http.MethodPost,"/v1/validate",in,&out);err!=nil{return err}
+	if !out.OK || !out.Valid{return fmt.Errorf("BotLogic validation did not confirm valid source")}
+	return nil
+}
+
 func (c *Client) Consult(ctx context.Context, ruleset, source string) error {
 	if strings.TrimSpace(ruleset) == "" || strings.TrimSpace(source) == "" {
 		return fmt.Errorf("ruleset and source are required")

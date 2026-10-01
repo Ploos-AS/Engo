@@ -79,3 +79,14 @@ func TestConsultRejectsOversizeSource(t *testing.T) {
 		t.Fatal("expected size error")
 	}
 }
+
+func TestValidateUsesStableV1Endpoint(t *testing.T){
+	var path string;var source string
+	s:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){path=r.URL.Path;var in struct{Source string `json:"source"`};if err:=json.NewDecoder(r.Body).Decode(&in);err!=nil{t.Fatal(err)};source=in.Source;w.Header().Set("Content-Type","application/json");io.WriteString(w,`{"ok":true,"valid":true}`)}));defer s.Close()
+	c,_:=New(s.URL,time.Second);if err:=c.Validate(context.Background(),"allowed(a).");err!=nil{t.Fatal(err)}
+	if path!="/v1/validate"||source!="allowed(a)."{t.Fatalf("path=%q source=%q",path,source)}
+}
+func TestValidateRejectsUnconfirmedResponse(t *testing.T){
+	s:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){w.Header().Set("Content-Type","application/json");io.WriteString(w,`{"ok":true,"valid":false}`)}));defer s.Close()
+	c,_:=New(s.URL,time.Second);if err:=c.Validate(context.Background(),"allowed(a).");err==nil{t.Fatal("expected validation failure")}
+}

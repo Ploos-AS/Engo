@@ -97,6 +97,10 @@ func (c *Client) Join(channel string) error {
 	}
 	return c.writef("JOIN %s", channel)
 }
+func (c *Client) Who(channel string) error {
+	if !validChannel(channel) { return fmt.Errorf("invalid channel") }
+	return c.writef("WHO %s", channel)
+}
 func (c *Client) Part(channel, reason string) error {
 	if !validChannel(channel) {
 		return fmt.Errorf("invalid channel")
@@ -324,9 +328,8 @@ func (c *Client) Run() error {
 				return fmt.Errorf("registered before SASL completed")
 			}
 			for _, channel := range c.cfg.Channels {
-				if err := c.writef("JOIN %s", sanitizeTarget(channel)); err != nil {
-					return err
-				}
+				if err := c.writef("JOIN %s", sanitizeTarget(channel)); err != nil { return err }
+				if err := c.Who(channel); err != nil { return err }
 			}
 			_ = c.conn.SetReadDeadline(time.Time{})
 		}

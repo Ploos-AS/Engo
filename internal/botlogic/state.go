@@ -21,25 +21,62 @@ func NewIRCState() *IRCState {
 	return &IRCState{channels: map[string]map[string]bool{}, accounts: map[string]string{}, operators: map[string]map[string]bool{}, voiced: map[string]map[string]bool{}, names: map[string]map[string]nameRole{}}
 }
 
-
 // Reset returns retract operations for all facts currently owned by the IRC
 // mirror, then clears the local index. It is used at a connection boundary so
 // a fresh NAMES/WHO/WHOX bootstrap cannot inherit stale state.
 func (s *IRCState) Reset() []FactOperation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	f:=func(op,p string,args ...string) FactOperation{return FactOperation{Op:op,Fact:Fact{Predicate:p,Args:args}}}
-	var ops []FactOperation
-	channels:=make([]string,0,len(s.channels));for ch:=range s.channels{channels=append(channels,ch)};sort.Strings(channels)
-	for _,ch:=range channels {
-		nicks:=make([]string,0,len(s.channels[ch]));for nick:=range s.channels[ch]{nicks=append(nicks,nick)};sort.Strings(nicks)
-		for _,nick:=range nicks{ops=append(ops,f("retract","channel_member",ch,nick));ops=append(ops,s.removeRoles(ch,nick,f)...)}
+	f := func(op, p string, args ...string) FactOperation {
+		return FactOperation{Op: op, Fact: Fact{Predicate: p, Args: args}}
 	}
-	accounts:=make([]string,0,len(s.accounts));for nick:=range s.accounts{accounts=append(accounts,nick)};sort.Strings(accounts)
-	for _,nick:=range accounts{ops=append(ops,f("retract","authenticated",nick,s.accounts[nick]))}
-	online:=map[string]bool{};for _,members:=range s.channels{for nick:=range members{online[nick]=true}};for nick:=range s.accounts{online[nick]=true}
-	nicks:=make([]string,0,len(online));for nick:=range online{nicks=append(nicks,nick)};sort.Strings(nicks);for _,nick:=range nicks{ops=append(ops,f("retract","online",nick))}
-	s.channels=map[string]map[string]bool{};s.accounts=map[string]string{};s.operators=map[string]map[string]bool{};s.voiced=map[string]map[string]bool{};s.names=map[string]map[string]nameRole{}
+	var ops []FactOperation
+	channels := make([]string, 0, len(s.channels))
+	for ch := range s.channels {
+		channels = append(channels, ch)
+	}
+	sort.Strings(channels)
+	for _, ch := range channels {
+		nicks := make([]string, 0, len(s.channels[ch]))
+		for nick := range s.channels[ch] {
+			nicks = append(nicks, nick)
+		}
+		sort.Strings(nicks)
+		for _, nick := range nicks {
+			ops = append(ops, f("retract", "channel_member", ch, nick))
+			ops = append(ops, s.removeRoles(ch, nick, f)...)
+		}
+	}
+	accounts := make([]string, 0, len(s.accounts))
+	for nick := range s.accounts {
+		accounts = append(accounts, nick)
+	}
+	sort.Strings(accounts)
+	for _, nick := range accounts {
+		ops = append(ops, f("retract", "authenticated", nick, s.accounts[nick]))
+	}
+	online := map[string]bool{}
+	for _, members := range s.channels {
+		for nick := range members {
+			online[nick] = true
+		}
+	}
+	for nick := range s.accounts {
+		online[nick] = true
+	}
+	nicks := make([]string, 0, len(online))
+	for nick := range online {
+		nicks = append(nicks, nick)
+	}
+	sort.Strings(nicks)
+	for _, nick := range nicks {
+		ops = append(ops, f("retract", "online", nick))
+	}
+	s.channels = map[string]map[string]bool{}
+	s.accounts = map[string]string{}
+	s.operators = map[string]map[string]bool{}
+	s.voiced = map[string]map[string]bool{}
+	s.names = map[string]map[string]nameRole{}
 	return ops
 }
 

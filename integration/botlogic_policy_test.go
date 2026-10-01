@@ -19,8 +19,7 @@ func TestReferencePolicyAgainstBotLogic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Enable representative grants while preserving the shipped policy logic.
-	source := string(sourceBytes) + "\naccount_command(alice, reload).\noperator_command(kick).\nvoiced_command(topic).\n"
+	source := string(sourceBytes)
 	c, err := botlogic.New(url, 2*time.Second)
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +41,7 @@ func TestReferencePolicyAgainstBotLogic(t *testing.T) {
 	assert := func(pred string, args ...string) botlogic.FactOperation {
 		return botlogic.FactOperation{Op: "assert", Fact: botlogic.Fact{Predicate: pred, Args: args}}
 	}
+	apply(assert("account_command", "alice", "reload"), assert("operator_command", "kick"), assert("voiced_command", "topic"))
 	apply(assert("authenticated", "AliceNick", "alice"), assert("online", "AliceNick"))
 	apply(assert("authenticated", "OpNick", "opacct"), assert("online", "OpNick"), assert("channel_operator", "#engo", "OpNick"))
 	apply(assert("authenticated", "VoiceNick", "voiceacct"), assert("online", "VoiceNick"), assert("voiced", "#engo", "VoiceNick"))

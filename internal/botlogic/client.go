@@ -97,12 +97,31 @@ func (c *Client) request(ctx context.Context, method, path string, in, out any) 
 	return json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(out)
 }
 
-type Fact struct { Predicate string `json:"predicate"`; Args []string `json:"args"` }
-type FactOperation struct { Op string `json:"op"`; Fact Fact `json:"fact"` }
-type MutationResult struct { OK bool `json:"ok"`; Ruleset string `json:"ruleset"`; Revision uint64 `json:"revision"` }
+type Fact struct {
+	Predicate string   `json:"predicate"`
+	Args      []string `json:"args"`
+}
+type FactOperation struct {
+	Op   string `json:"op"`
+	Fact Fact   `json:"fact"`
+}
+type MutationResult struct {
+	OK       bool   `json:"ok"`
+	Ruleset  string `json:"ruleset"`
+	Revision uint64 `json:"revision"`
+}
 
-func (c *Client) ApplyFacts(ctx context.Context,ruleset string,operations []FactOperation)(MutationResult,error){
-	if strings.TrimSpace(ruleset)==""||len(operations)==0{return MutationResult{},fmt.Errorf("ruleset and operations are required")}
-	in:=struct{Ruleset string `json:"ruleset"`;Operations []FactOperation `json:"operations"`}{ruleset,operations};var out MutationResult
-	if err:=c.request(ctx,http.MethodPost,"/v1/facts/batch",in,&out);err!=nil{return MutationResult{},err};return out,nil
+func (c *Client) ApplyFacts(ctx context.Context, ruleset string, operations []FactOperation) (MutationResult, error) {
+	if strings.TrimSpace(ruleset) == "" || len(operations) == 0 {
+		return MutationResult{}, fmt.Errorf("ruleset and operations are required")
+	}
+	in := struct {
+		Ruleset    string          `json:"ruleset"`
+		Operations []FactOperation `json:"operations"`
+	}{ruleset, operations}
+	var out MutationResult
+	if err := c.request(ctx, http.MethodPost, "/v1/facts/batch", in, &out); err != nil {
+		return MutationResult{}, err
+	}
+	return out, nil
 }

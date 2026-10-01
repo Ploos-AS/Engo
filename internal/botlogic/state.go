@@ -118,9 +118,7 @@ func (s *IRCState) Observe(command, nick, target, account string, verified bool,
 		// RPL_WHOREPLY: <me> <channel> <user> <host> <server> <nick> <flags> :...
 		if len(params)<6{return nil};ch:=strings.ToLower(params[1]);whoNick:=strings.ToLower(params[5]);if ch==""||whoNick==""{return nil}
 		if s.channels[ch]==nil{s.channels[ch]=map[string]bool{}};if !s.channels[ch][whoNick]{s.channels[ch][whoNick]=true;ops=append(ops,f("assert","channel_member",ch,whoNick),f("assert","online",whoNick))}
-		// Standard WHO has no services account field. Only an IRCv3 account tag
-		// with message provenance may enrich authenticated/2.
-		if tagged,ok:=whoAccount(params,trailing);ok{if old:=s.accounts[whoNick];old!=""&&old!=tagged{ops=append(ops,f("retract","authenticated",whoNick,old))};s.accounts[whoNick]=tagged;ops=append(ops,f("assert","authenticated",whoNick,tagged))}
+		// Standard WHO has no services-account field, so it never asserts authenticated/2.
 	case "353":
 		if len(params) < 3 {
 			return nil
@@ -298,4 +296,3 @@ func (s *IRCState) moveRoles(ch, oldNick, newNick string, f factMaker) []FactOpe
 	return ops
 }
 
-func whoAccount(params []string,trailing string)(string,bool){ _=params;_ = trailing;return "",false }

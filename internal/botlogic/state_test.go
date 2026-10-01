@@ -60,21 +60,37 @@ func TestStateAccountLogoutRetractsKnownAccount(t *testing.T) {
 	}
 }
 
-func TestStateModeOperatorAndVoice(t *testing.T){
-	s:=NewIRCState();s.Observe("JOIN","Alice","#x","",false,nil,"");s.Observe("JOIN","Bob","#x","",false,nil,"")
-	ops:=s.Observe("MODE","ChanServ","#x","",false,[]string{"#x","+ov","Alice","Bob"},"")
-	if !hasOp(ops,"assert","channel_operator","#x","alice")||!hasOp(ops,"assert","voiced","#x","bob"){t.Fatalf("ops=%+v",ops)}
-	ops=s.Observe("MODE","ChanServ","#x","",false,[]string{"#x","-ov","Alice","Bob"},"")
-	if !hasOp(ops,"retract","channel_operator","#x","alice")||!hasOp(ops,"retract","voiced","#x","bob"){t.Fatalf("ops=%+v",ops)}
+func TestStateModeOperatorAndVoice(t *testing.T) {
+	s := NewIRCState()
+	s.Observe("JOIN", "Alice", "#x", "", false, nil, "")
+	s.Observe("JOIN", "Bob", "#x", "", false, nil, "")
+	ops := s.Observe("MODE", "ChanServ", "#x", "", false, []string{"#x", "+ov", "Alice", "Bob"}, "")
+	if !hasOp(ops, "assert", "channel_operator", "#x", "alice") || !hasOp(ops, "assert", "voiced", "#x", "bob") {
+		t.Fatalf("ops=%+v", ops)
+	}
+	ops = s.Observe("MODE", "ChanServ", "#x", "", false, []string{"#x", "-ov", "Alice", "Bob"}, "")
+	if !hasOp(ops, "retract", "channel_operator", "#x", "alice") || !hasOp(ops, "retract", "voiced", "#x", "bob") {
+		t.Fatalf("ops=%+v", ops)
+	}
 }
-func TestStateNickMovesRoles(t *testing.T){
-	s:=NewIRCState();s.Observe("JOIN","Alice","#x","",false,nil,"");s.Observe("MODE","Op","#x","",false,[]string{"#x","+ov","Alice","Alice"},"")
-	ops:=s.Observe("NICK","Alice","","",false,nil,"Bob")
-	if !hasOp(ops,"retract","channel_operator","#x","alice")||!hasOp(ops,"assert","channel_operator","#x","bob"){t.Fatalf("ops=%+v",ops)}
-	if !hasOp(ops,"retract","voiced","#x","alice")||!hasOp(ops,"assert","voiced","#x","bob"){t.Fatalf("ops=%+v",ops)}
+func TestStateNickMovesRoles(t *testing.T) {
+	s := NewIRCState()
+	s.Observe("JOIN", "Alice", "#x", "", false, nil, "")
+	s.Observe("MODE", "Op", "#x", "", false, []string{"#x", "+ov", "Alice", "Alice"}, "")
+	ops := s.Observe("NICK", "Alice", "", "", false, nil, "Bob")
+	if !hasOp(ops, "retract", "channel_operator", "#x", "alice") || !hasOp(ops, "assert", "channel_operator", "#x", "bob") {
+		t.Fatalf("ops=%+v", ops)
+	}
+	if !hasOp(ops, "retract", "voiced", "#x", "alice") || !hasOp(ops, "assert", "voiced", "#x", "bob") {
+		t.Fatalf("ops=%+v", ops)
+	}
 }
-func TestStateKickRemovesRoles(t *testing.T){
-	s:=NewIRCState();s.Observe("JOIN","Alice","#x","",false,nil,"");s.Observe("MODE","Op","#x","",false,[]string{"#x","+o","Alice"},"")
-	ops:=s.Observe("KICK","Op","#x","",false,[]string{"#x","Alice"},"")
-	if !hasOp(ops,"retract","channel_operator","#x","alice"){t.Fatalf("ops=%+v",ops)}
+func TestStateKickRemovesRoles(t *testing.T) {
+	s := NewIRCState()
+	s.Observe("JOIN", "Alice", "#x", "", false, nil, "")
+	s.Observe("MODE", "Op", "#x", "", false, []string{"#x", "+o", "Alice"}, "")
+	ops := s.Observe("KICK", "Op", "#x", "", false, []string{"#x", "Alice"}, "")
+	if !hasOp(ops, "retract", "channel_operator", "#x", "alice") {
+		t.Fatalf("ops=%+v", ops)
+	}
 }

@@ -3,7 +3,6 @@ package botlogic
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -15,6 +14,3 @@ func (c *Client) MayExecute(ctx context.Context,ruleset,account,command string)(
 	result,err:=c.Query(ctx,ruleset,q);if err!=nil{return false,0,err};return len(result.Solutions)>0,result.Revision,nil
 }
 
-func PolicyFact(account,command string) string {
-	return "may_execute("+strconv.Quote(strings.ToLower(account))+","+strconv.Quote(strings.ToLower(command))+")."
-}

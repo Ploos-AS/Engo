@@ -129,3 +129,10 @@ func TestNamesAccumulatesMultiple353Lines(t *testing.T) {
 		}
 	}
 }
+
+func TestStandardWHOEnrichesMembershipButNotAccount(t *testing.T){
+	s:=NewIRCState()
+	ops:=s.Observe("352","server","","",false,[]string{"engo","#x","user","host","server","Alice","H"},"0 Alice")
+	if !hasOp(ops,"assert","channel_member","#x","alice")||!hasOp(ops,"assert","online","alice"){t.Fatalf("ops=%+v",ops)}
+	for _,op:=range ops{if op.Fact.Predicate=="authenticated"{t.Fatalf("standard WHO must not assert account: %+v",ops)}}
+}

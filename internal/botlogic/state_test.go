@@ -142,3 +142,16 @@ func TestStandardWHOEnrichesMembershipButNotAccount(t *testing.T) {
 		}
 	}
 }
+
+func TestWHOXEnrichesVerifiedAccountFromExactContract(t *testing.T){
+	s:=NewIRCState();ops:=s.Observe("354","server","","",false,[]string{"engo","152","#x","Alice","AliceAcct"},"")
+	if !hasOp(ops,"assert","channel_member","#x","alice")||!hasOp(ops,"assert","authenticated","alice","aliceacct"){t.Fatalf("ops=%+v",ops)}
+}
+func TestWHOXRejectsForeignToken(t *testing.T){
+	s:=NewIRCState();ops:=s.Observe("354","server","","",false,[]string{"engo","999","#x","Alice","AliceAcct"},"")
+	if len(ops)!=0{t.Fatalf("foreign WHOX mutated state: %+v",ops)}
+}
+func TestWHOXDoesNotAuthenticateZeroAccount(t *testing.T){
+	s:=NewIRCState();ops:=s.Observe("354","server","","",false,[]string{"engo","152","#x","Alice","0"},"")
+	for _,op:=range ops{if op.Fact.Predicate=="authenticated"{t.Fatalf("zero account authenticated: %+v",ops)}}
+}

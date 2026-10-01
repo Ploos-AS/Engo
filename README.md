@@ -6,7 +6,9 @@ M0–M4 established the project foundation, robust IRC lifecycle, Tengo event/co
 
 ## Standalone-first rule
 
-Engo MUST remain a fully functional IRC bot without PBMP, BotWeb, BotAI, or any other external Ploos service. PBMP management, BotWeb integration and BotAI capabilities are optional adapters/features only. Their absence, failure, or removal MUST NOT prevent normal IRC operation or make core bot functionality depend on an external control plane or AI service.
+Standalone qualification requires the bot to build and pass its core test suite with PBMP, BotWeb, BotAI and BotLogic disabled. None of these integrations may become a required build/runtime dependency.
+
+Engo MUST remain a fully functional IRC bot without PBMP, BotWeb, BotAI, BotLogic, or any other external Ploos service. PBMP management, BotWeb integration, BotAI capabilities and BotLogic are optional adapters/features only. Their absence, failure, or removal MUST NOT prevent normal IRC operation or make core bot functionality depend on an external control plane or AI service.
 
 ## Status
 

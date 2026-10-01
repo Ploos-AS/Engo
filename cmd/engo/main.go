@@ -111,6 +111,12 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 					if readErr != nil {
 						return fmt.Errorf("preflight BotLogic policy: %w", readErr)
 					}
+					validateCtx, validateCancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
+					validateErr := logicClient.Validate(validateCtx, source)
+					validateCancel()
+					if validateErr != nil {
+						return fmt.Errorf("validate BotLogic policy: %w", validateErr)
+					}
 					deployCtx, deployCancel := context.WithTimeout(ctx, cfg.BotLogicTimeout)
 					deployErr := logicClient.Consult(deployCtx, cfg.BotLogicRuleset, source)
 					deployCancel()

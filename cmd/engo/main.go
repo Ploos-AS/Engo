@@ -11,6 +11,7 @@ import (
 
 	"github.com/Ploos-AS/Engo/internal/bot"
 	botaiclient "github.com/Ploos-AS/Engo/internal/botai"
+	botlogicclient "github.com/Ploos-AS/Engo/internal/botlogic"
 	"github.com/Ploos-AS/Engo/internal/config"
 	"github.com/Ploos-AS/Engo/internal/irc"
 	"github.com/Ploos-AS/Engo/internal/pbmp"
@@ -90,6 +91,16 @@ func runIRC(ctx context.Context, cfg config.Config, pbstate *pbmp.State, aiStats
 	pbstate.Log("info", "IRC session connected")
 	pbstate.SetActions(client.Join, client.Part)
 	b := bot.New(client)
+	if cfg.BotLogicURL != "" {
+		logicClient,logicErr:=botlogicclient.New(cfg.BotLogicURL,cfg.BotLogicTimeout)
+		if logicErr!=nil { fmt.Fprintf(os.Stderr,"engo: BotLogic disabled: %v\n",logicErr); pbstate.Log("warn","BotLogic disabled by invalid configuration") } else {
+			checkCtx,cancel:=context.WithTimeout(ctx,cfg.BotLogicTimeout);compatErr:=logicClient.Compatible(checkCtx);cancel()
+			if compatErr!=nil { fmt.Fprintf(os.Stderr,"engo: BotLogic unavailable/incompatible; continuing without symbolic reasoning: %v\n",compatErr); pbstate.Log("warn","BotLogic unavailable or incompatible; IRC operation continues") } else {
+				b.BuiltinCommand("logic",func(ev bot.Event) error { if len(ev.Args)==0{return b.Notice(ev.Nick,"usage: !logic <query>")}; qctx,cancel:=context.WithTimeout(ctx,cfg.BotLogicTimeout);defer cancel();result,err:=logicClient.Query(qctx,cfg.BotLogicRuleset,strings.Join(ev.Args," "));if err!=nil{fmt.Fprintf(os.Stderr,"engo: BotLogic query failed: %v\n",err);return b.Notice(ev.Nick,"BotLogic is temporarily unavailable")};return b.Notice(ev.Nick,fmt.Sprintf("BotLogic revision %d: %d solution(s)",result.Revision,len(result.Solutions))) })
+				pbstate.Log("info","BotLogic integration enabled")
+			}
+		}
+	}
 	if cfg.BotAIURL != "" {
 		ai, aiErr := botaiclient.New(cfg.BotAIURL, cfg.BotAITimeout)
 		if aiErr != nil {

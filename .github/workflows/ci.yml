@@ -99,7 +99,10 @@ jobs:
           path: .botlogic
       - name: Build BotLogic
         working-directory: .botlogic
-        run: go build -o /tmp/botlogic ./cmd/botlogic
+        run: |
+          go env GOMOD GOVERSION
+          go mod download
+          go build -v -o /tmp/botlogic ./cmd/botlogic
       - name: Start BotLogic
         run: |
           mkdir -p /tmp/engo-botlogic-data

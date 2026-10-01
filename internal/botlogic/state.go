@@ -117,9 +117,31 @@ func (s *IRCState) Observe(command, nick, target, account string, verified bool,
 	case "354":
 		// Engo WHOX contract: WHO <channel> %tcna,152
 		// RPL_WHOSPCRPL params: <me> 152 <channel> <nick> <account>
-		if len(params)<5 || params[1]!="152"{return nil};ch:=strings.ToLower(params[2]);whoNick:=strings.ToLower(params[3]);whoAccount:=strings.ToLower(params[4])
-		if ch==""||whoNick==""{return nil};if s.channels[ch]==nil{s.channels[ch]=map[string]bool{}};if !s.channels[ch][whoNick]{s.channels[ch][whoNick]=true;ops=append(ops,f("assert","channel_member",ch,whoNick),f("assert","online",whoNick))}
-		if whoAccount!=""&&whoAccount!="0"&&whoAccount!="*" {if old:=s.accounts[whoNick];old!=""&&old!=whoAccount{ops=append(ops,f("retract","authenticated",whoNick,old))};if s.accounts[whoNick]!=whoAccount{s.accounts[whoNick]=whoAccount;ops=append(ops,f("assert","authenticated",whoNick,whoAccount))}}
+		if len(params) < 5 || params[1] != "152" {
+			return nil
+		}
+		ch := strings.ToLower(params[2])
+		whoNick := strings.ToLower(params[3])
+		whoAccount := strings.ToLower(params[4])
+		if ch == "" || whoNick == "" {
+			return nil
+		}
+		if s.channels[ch] == nil {
+			s.channels[ch] = map[string]bool{}
+		}
+		if !s.channels[ch][whoNick] {
+			s.channels[ch][whoNick] = true
+			ops = append(ops, f("assert", "channel_member", ch, whoNick), f("assert", "online", whoNick))
+		}
+		if whoAccount != "" && whoAccount != "0" && whoAccount != "*" {
+			if old := s.accounts[whoNick]; old != "" && old != whoAccount {
+				ops = append(ops, f("retract", "authenticated", whoNick, old))
+			}
+			if s.accounts[whoNick] != whoAccount {
+				s.accounts[whoNick] = whoAccount
+				ops = append(ops, f("assert", "authenticated", whoNick, whoAccount))
+			}
+		}
 	case "352":
 		// RPL_WHOREPLY: <me> <channel> <user> <host> <server> <nick> <flags> :...
 		if len(params) < 6 {

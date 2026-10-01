@@ -97,10 +97,13 @@ func (c *Client) Join(channel string) error {
 	}
 	return c.writef("JOIN %s", channel)
 }
+
 const whoxToken = "152"
 
 func (c *Client) Who(channel string) error {
-	if !validChannel(channel) { return fmt.Errorf("invalid channel") }
+	if !validChannel(channel) {
+		return fmt.Errorf("invalid channel")
+	}
 	// WHOX fields: token, channel, nick, account. Servers without WHOX
 	// support may ignore the suffix or return ordinary 352 WHO replies.
 	return c.writef("WHO %s %%tcna,%s", channel, whoxToken)
